@@ -1,333 +1,214 @@
-'use client'
+"use client"
 
-import { useState, useEffect } from 'react'
-import { PixivStyleGrid } from '@/components/artwork/PixivStyleGrid'
-import { PixivPageTransition } from '@/components/ui/PixivLoader'
-import { supabase } from '@/lib/supabase'
-import type { Artwork } from '@/lib/supabase'
-import { Flame, TrendingUp, Calendar, Clock, Heart, Eye, SortAsc, Filter, Grid, List, Search } from 'lucide-react'
+import { useState, useEffect } from "react"
+import { MainLayout } from "@/components/layout/main-layout"
+import { ArtworkGrid } from "@/components/artwork/artwork-grid"
+import { SearchBar } from "@/components/search/search-bar"
+import { SearchFilters } from "@/components/search/search-filters"
+import { useImages, usePopularImages, useCategories, usePopularTags } from "@/lib/hooks/use-images"
+import { useAuth } from "@/lib/providers/auth-provider"
+import { Skeleton } from "@/components/ui/skeleton"
 
-type Period = 'daily' | 'weekly' | 'monthly' | 'all'
-type SortType = 'likes' | 'views' | 'recent' | 'random'
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filters, setFilters] = useState({})
+  const { user } = useAuth()
 
-export default function HomePage() {
-  const [artworks, setArtworks] = useState<(Artwork & {
-    users?: {
-      id: string
-      username: string
-      avatar_url?: string
-    }
-  })[]>([])
-  const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState<Period>('daily')
-  const [sortType, setSortType] = useState<SortType>('likes')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [page, setPage] = useState(1)
-  const [hasMore, setHasMore] = useState(true)
-  const [showFilters, setShowFilters] = useState(false)
+  // 使用真实数据 hooks
+  const {
+    images: searchResults,
+    isLoading: searchLoading,
+    error: searchError,
+    loadMore: loadMoreSearch,
+    hasMore: hasMoreSearch,
+    refresh: refreshSearch
+  } = useImages({
+    searchQuery,
+    category: filters.categories?.[0],
+    tags: filters.tags,
+    sortBy: filters.sortBy || 'created_at',
+    limit: 20
+  })
 
-  useEffect(() => {
-    fetchTrendingArtworks(true)
-  }, [period, sortType])
+  const {
+    images: popularImages,
+    isLoading: popularLoading,
+    error: popularError,
+    refresh: refreshPopular
+  } = usePopularImages('week', 20)
 
-  const fetchTrendingArtworks = async (reset = false) => {
-    try {
-      setLoading(true)
-      const currentPage = reset ? 1 : page
-      const limit = 20
-      const offset = (currentPage - 1) * limit
+  const {
+    categories,
+    isLoading: categoriesLoading
+  } = useCategories()
 
-      // 计算时间范围
-      const now = new Date()
-      let startDate: Date
-      
-      switch (period) {
-        case 'daily':
-          startDate = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-          break
-        case 'weekly':
-          startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-          break
-        case 'monthly':
-          startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-          break
-        case 'all':
-        default:
-          startDate = new Date(0) // 从最早开始
-          break
-      }
+  const {
+    tags: popularTags,
+    isLoading: tagsLoading
+  } = usePopularTags(50)
 
-      // 使用posts_with_details视图获取带有用户信息和统计数据的帖子
-      let query = supabase
-        .from('posts_with_details')
-        .select('*')
-        .gte('created_at', startDate.toISOString())
-        .not('image_urls', 'is', null) // 只获取有图片的帖子
-        .range(offset, offset + limit - 1)
+  // 根据搜索状态决定显示的数据
+  const displayImages = searchQuery || Object.keys(filters).length > 0 ? searchResults : popularImages
+  const isLoading = searchQuery || Object.keys(filters).length > 0 ? searchLoading : popularLoading
+  const error = searchQuery || Object.keys(filters).length > 0 ? searchError : popularError
 
-      // 根据排序类型添加排序
-      switch (sortType) {
-        case 'likes':
-          query = query.order('likes_count', { ascending: false })
-          break
-        case 'views':
-          // posts表没有views_count，使用likes_count作为替代
-          query = query.order('likes_count', { ascending: false })
-          break
-        case 'recent':
-          query = query.order('created_at', { ascending: false })
-          break
-        case 'random':
-          // 注意：这里使用简单的随机排序，实际应用中可能需要更复杂的逻辑
-          query = query.order('id', { ascending: Math.random() > 0.5 })
-          break
-      }
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+  }
 
-      const { data, error } = await query
-
-      if (error) {
-        console.error('Error fetching trending artworks:', error)
-        return
-      }
-
-      // 将posts数据映射为Artwork格式
-      const mappedArtworks: Artwork[] = (data || []).map(post => ({
-        id: post.id!,
-        user_id: post.user_id!,
-        title: post.content?.substring(0, 50) || '', // 使用内容的前50个字符作为标题
-        description: post.content || '',
-        image_urls: post.image_urls || [],
-        image_url: post.image_urls?.[0] || '',
-        thumbnail_url: post.image_urls?.[0] || '',
-        likes_count: post.likes_count || 0,
-        views_count: post.likes_count || 0, // 使用likes_count作为views_count的替代
-        comments_count: post.comments_count || 0,
-        is_public: true,
-        created_at: post.created_at!,
-        updated_at: post.updated_at!,
-        users: {
-          id: post.user_id!,
-          username: post.username || '',
-          avatar_url: post.avatar_url || undefined
-        }
-      }))
-
-      if (reset) {
-        setArtworks(mappedArtworks)
-        setPage(2)
-      } else {
-        setArtworks(prev => [...prev, ...mappedArtworks])
-        setPage(prev => prev + 1)
-      }
-
-      setHasMore(mappedArtworks.length === limit)
-    } catch (error) {
-      console.error('Error fetching trending artworks:', error)
-    } finally {
-      setLoading(false)
-    }
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters)
   }
 
   const handleLoadMore = () => {
-    if (!loading && hasMore) {
-      fetchTrendingArtworks(false)
+    if (searchQuery || Object.keys(filters).length > 0) {
+      loadMoreSearch()
     }
   }
 
-  const handleLike = async (postId: string) => {
-    // 这里应该实现点赞逻辑
-    console.log('点赞作品:', postId)
-  }
-
-  const handleBookmark = async (postId: string) => {
-    // 这里应该实现收藏逻辑
-    console.log('收藏作品:', postId)
-  }
-
-  const getPeriodLabel = (p: Period) => {
-    switch (p) {
-      case 'daily': return '今日'
-      case 'weekly': return '本周'
-      case 'monthly': return '本月'
-      case 'all': return '全部'
+  const handleRefresh = () => {
+    if (searchQuery || Object.keys(filters).length > 0) {
+      refreshSearch()
+    } else {
+      refreshPopular()
     }
   }
-
-  const getSortLabel = (s: SortType) => {
-    switch (s) {
-      case 'likes': return '点赞数'
-      case 'views': return '浏览量'
-      case 'recent': return '最新'
-      case 'random': return '随机'
-    }
-  }
-
-  // 移除全屏加载器，改为在页面内显示骨架屏
 
   return (
-    <PixivPageTransition>
-      <div className="page-enter min-h-screen bg-base-100">
-      {/* Pixiv风格的顶部横幅 */}
-      <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
+    <MainLayout>
+      <div className="space-y-8">
+        {/* 搜索区域 */}
+        <div className="bg-gradient-to-r from-background to-muted/20 rounded-xl p-6 space-y-6">
+          <div className="text-center space-y-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
               发现精彩作品
             </h1>
-            <p className="text-xl opacity-90 mb-8">
-              探索来自全球创作者的优秀艺术作品
-            </p>
-            
-            {/* 搜索栏 */}
-            <div className="max-w-2xl mx-auto relative">
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="搜索作品、标签或创作者..."
-                  className="search-input w-full pl-12 pr-4 py-4 text-gray-900 bg-white rounded-full shadow-lg focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-50 text-lg"
-                />
-              </div>
+            <p className="text-muted-foreground">探索来自世界各地的艺术家的创意作品</p>
+          </div>
+          
+          <div className="flex flex-col gap-4 max-w-4xl mx-auto">
+            <div className="flex items-center justify-center">
+              <SearchBar onSearch={handleSearch} />
             </div>
+            
+            {/* 筛选器 */}
+            <SearchFilters 
+              onFiltersChange={handleFiltersChange}
+              categories={categories.map(c => c.name)}
+              popularTags={popularTags.map(t => t.name)}
+              loading={categoriesLoading || tagsLoading}
+            />
           </div>
         </div>
-      </div>
 
-      {/* 主要内容区域 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* 筛选栏 - Pixiv风格 */}
-        <div className="sticky top-0 z-10 bg-base-100 border-b border-base-300 py-4 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-          <div className="flex items-center justify-between">
-            {/* 左侧筛选选项 */}
-            <div className="flex items-center gap-6">
-              {/* 时间段选择 */}
-              <div className="flex items-center gap-2">
-                {(['daily', 'weekly', 'monthly', 'all'] as Period[]).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`filter-button pixiv-button px-4 py-2 text-sm font-medium rounded-full ${
-                      period === p 
-                        ? 'active bg-blue-500 text-white shadow-md' 
-                        : 'text-base-content/70 hover:text-blue-500 hover:bg-base-200'
-                    }`}
-                  >
-                    {getPeriodLabel(p)}
-                  </button>
-                ))}
-              </div>
-
-              {/* 分隔线 */}
-              <div className="w-px h-6 bg-base-300"></div>
-
-              {/* 排序选择 */}
-              <div className="flex items-center gap-2">
-                {(['likes', 'views', 'recent'] as SortType[]).map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSortType(s)}
-                    className={`filter-button pixiv-button px-3 py-2 text-sm font-medium rounded-full ${
-                      sortType === s 
-                        ? 'active bg-base-content text-base-100' 
-                        : 'text-base-content/70 hover:text-base-content hover:bg-base-200'
-                    }`}
-                  >
-                    {getSortLabel(s)}
-                  </button>
-                ))}
+        {/* 结果区域 */}
+        <div className="space-y-6">
+          {/* 结果标题 */}
+          <div className="flex items-center justify-between border-b pb-4">
+            <div>
+              <h2 className="text-2xl font-semibold">
+                {searchQuery ? `搜索结果` : "热门作品"}
+              </h2>
+              <div className="text-sm text-muted-foreground mt-1">
+                {isLoading ? (
+                  <Skeleton className="h-4 w-32" />
+                ) : searchQuery ? (
+                  `"${searchQuery}" - 找到 ${displayImages.length} 个结果`
+                ) : (
+                  `共 ${displayImages.length} 件作品`
+                )}
               </div>
             </div>
-
-            {/* 右侧控制按钮 */}
-            <div className="flex items-center gap-3">
-              {/* 视图模式切换 */}
-              <div className="flex items-center bg-base-200 rounded-full p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded-full transition-all duration-200 ${
-                    viewMode === 'grid'
-                      ? 'bg-base-100 text-base-content shadow-sm'
-                      : 'text-base-content/50 hover:text-base-content/70'
-                  }`}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded-full transition-all duration-200 ${
-                    viewMode === 'list'
-                      ? 'bg-base-100 text-base-content shadow-sm'
-                      : 'text-base-content/50 hover:text-base-content/70'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
+            
+            {/* 刷新按钮 */}
+            <button
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isLoading ? "加载中..." : "刷新"}
+            </button>
+          </div>
+          
+          {/* 错误提示 */}
+          {error && (
+            <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+              <div className="flex items-center gap-2 text-destructive">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="font-medium">加载失败</span>
               </div>
-
-              {/* 筛选按钮 */}
+              <p className="text-sm text-muted-foreground mt-1">{error}</p>
               <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-base-content/70 hover:text-base-content hover:bg-base-200 rounded-full transition-all duration-200"
+                onClick={handleRefresh}
+                className="mt-2 text-sm text-primary hover:underline"
               >
-                <Filter className="w-4 h-4" />
-                筛选
+                重试
               </button>
             </div>
-          </div>
-
-          {/* 展开的筛选选项 */}
-          {showFilters && (
-            <div className="mt-4 p-4 bg-base-200 rounded-lg">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">
-                    作品类型
-                  </label>
-                  <select className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 text-base-content">
-                    <option>全部</option>
-                    <option>插画</option>
-                    <option>漫画</option>
-                    <option>动画</option>
-                  </select>
+          )}
+          
+          {/* 加载骨架屏 */}
+          {isLoading && displayImages.length === 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="space-y-3">
+                  <Skeleton className="aspect-[3/4] w-full rounded-lg" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">
-                    标签
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="输入标签..."
-                    className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 text-base-content"
-                  />
+              ))}
+            </div>
+          )}
+          
+          {/* 作品网格 */}
+          {!isLoading && displayImages.length > 0 && (
+            <>
+              <ArtworkGrid artworks={displayImages} />
+              
+              {/* 加载更多按钮 */}
+              {(searchQuery || Object.keys(filters).length > 0) && hasMoreSearch && (
+                <div className="text-center pt-8">
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={searchLoading}
+                    className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {searchLoading ? "加载中..." : "加载更多"}
+                  </button>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-base-content mb-2">
-                    最小点赞数
-                  </label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    className="w-full px-3 py-2 border border-base-300 rounded-lg bg-base-100 text-base-content"
-                  />
+              )}
+            </>
+          )}
+          
+          {/* 无结果提示 */}
+          {!isLoading && displayImages.length === 0 && !error && (
+            <div className="text-center py-16">
+              <div className="max-w-md mx-auto space-y-4">
+                <div className="w-24 h-24 mx-auto bg-muted rounded-full flex items-center justify-center">
+                  <svg className="w-12 h-12 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">
+                    {searchQuery ? "没有找到相关作品" : "暂无作品"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {searchQuery 
+                      ? "尝试调整搜索关键词或筛选条件，或者浏览其他分类"
+                      : "还没有用户上传作品，成为第一个分享者吧！"
+                    }
+                  </p>
                 </div>
               </div>
             </div>
           )}
         </div>
-
-        {/* 作品网格 */}
-        <div className="py-8">
-          <PixivStyleGrid 
-            artworks={artworks}
-            loading={loading}
-            hasMore={hasMore}
-            onLoadMore={handleLoadMore}
-            onLike={handleLike}
-            onBookmark={handleBookmark}
-          />
-        </div>
       </div>
-      </div>
-    </PixivPageTransition>
+    </MainLayout>
   )
 }

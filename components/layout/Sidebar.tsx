@@ -1,241 +1,168 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useLayout } from '@/components/providers/LayoutProvider'
-import { useAuth } from '@/components/providers/AuthProvider'
-import {
-  HomeIcon,
-  ClockIcon,
-  HeartIcon,
-  BookmarkIcon,
-  UserGroupIcon,
-  TagIcon,
-  Bars3Icon,
-  ChevronLeftIcon,
-  ChevronRightIcon
-} from '@heroicons/react/24/outline'
-import {
-  HomeIcon as HomeIconSolid,
-  ClockIcon as ClockIconSolid,
-  HeartIcon as HeartIconSolid,
-  BookmarkIcon as BookmarkIconSolid,
-  UserGroupIcon as UserGroupIconSolid,
-  TagIcon as TagIconSolid
-} from '@heroicons/react/24/solid'
-import { Flame } from 'lucide-react'
+import { Home, TrendingUp, Heart, Bookmark, User, Users, Settings, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn } from "@/lib/utils"
 
-interface NavItem {
-  name: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-  activeIcon: React.ComponentType<{ className?: string }>
-  requireAuth?: boolean
+interface SidebarProps {
+  className?: string
+  isCollapsed?: boolean
+  onToggle?: () => void
 }
 
-const mainNavItems: NavItem[] = [
-  {
-    name: '首页',
-    href: '/',
-    icon: Flame,
-    activeIcon: Flame,
-  },
-  {
-    name: '社区',
-    href: '/social',
-    icon: HomeIcon,
-    activeIcon: HomeIconSolid,
-  },
-  {
-    name: '最新',
-    href: '/latest',
-    icon: ClockIcon,
-    activeIcon: ClockIconSolid,
-  },
+const navigationItems = [
+  { icon: Home, label: "首页", href: "/" },
+  { icon: TrendingUp, label: "热门", href: "/trending" },
+  { icon: Heart, label: "关注", href: "/following" },
+  { icon: Bookmark, label: "收藏", href: "/bookmarks" },
 ]
 
-const userNavItems: NavItem[] = [
-  {
-    name: '我的收藏',
-    href: '/favorites',
-    icon: BookmarkIcon,
-    activeIcon: BookmarkIconSolid,
-    requireAuth: true,
-  },
-  {
-    name: '我的点赞',
-    href: '/liked',
-    icon: HeartIcon,
-    activeIcon: HeartIconSolid,
-    requireAuth: true,
-  },
-  {
-    name: '关注列表',
-    href: '/following',
-    icon: UserGroupIcon,
-    activeIcon: UserGroupIconSolid,
-    requireAuth: true,
-  },
+const userSections = [
+  { icon: User, label: "我的作品", href: "/my-works" },
+  { icon: Users, label: "关注的艺术家", href: "/following-artists" },
 ]
 
-const exploreNavItems: NavItem[] = [
-  {
-    name: '标签',
-    href: '/tags',
-    icon: TagIcon,
-    activeIcon: TagIconSolid,
-  },
-]
-
-
-
-export function Sidebar() {
-  const { sidebarOpen, isMobile, toggleSidebar } = useLayout()
-  const { user } = useAuth()
+export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
   const pathname = usePathname()
 
-  const NavItemComponent = ({ item }: { item: NavItem }) => {
-    const isActive = pathname === item.href
-    const Icon = isActive ? item.activeIcon : item.icon
+  const renderMenuItem = (item: any, isActive: boolean) => {
+    const buttonContent = (
+      <Button
+        key={item.href}
+        variant="ghost"
+        className={cn(
+          "w-full transition-all duration-200 group relative",
+          isCollapsed 
+            ? "justify-center p-0 h-12 w-12 mx-auto rounded-xl hover:bg-sidebar-accent" 
+            : "justify-start h-10 px-3 rounded-lg hover:bg-sidebar-accent",
+          isActive && isCollapsed && "bg-sidebar-primary hover:bg-sidebar-primary text-sidebar-primary-foreground",
+          isActive && !isCollapsed && "bg-sidebar-accent text-sidebar-accent-foreground",
+          !isActive && "text-sidebar-foreground/70 hover:text-sidebar-foreground"
+        )}
+      >
+        <item.icon className={cn(
+          "transition-all duration-200", 
+          isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
+          isActive && isCollapsed && "text-sidebar-primary-foreground",
+          isActive && !isCollapsed && "text-sidebar-primary"
+        )} />
+        {!isCollapsed && (
+          <span className="font-medium text-sm transition-all duration-200">{item.label}</span>
+        )}
+        
+        {/* 选中指示器 - 仅在展开状态显示 */}
+        {isActive && !isCollapsed && (
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary rounded-r-full" />
+        )}
+      </Button>
+    )
 
-    if (item.requireAuth && !user) {
-      return null
+    if (isCollapsed) {
+      return (
+        <TooltipProvider key={item.href}>
+          <Tooltip delayDuration={300}>
+            <TooltipTrigger asChild>
+              {buttonContent}
+            </TooltipTrigger>
+            <TooltipContent side="right" className="ml-2 bg-popover text-popover-foreground border-border">
+              <p className="font-medium text-sm">{item.label}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )
     }
 
-    return (
-      <li className="relative group">
-        <Link
-          href={item.href}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 hover:scale-105 relative overflow-hidden ${
-            sidebarOpen ? '' : 'justify-center'
-          } ${
-            isActive
-              ? 'bg-gradient-to-r from-primary to-primary/80 text-primary-content shadow-lg shadow-primary/25'
-              : 'hover:bg-base-200/80 text-base-content hover:shadow-md hover:bg-gradient-to-r hover:from-base-200 hover:to-base-200/50'
-          }`}
-        >
-          <Icon className={`h-5 w-5 flex-shrink-0 transition-all duration-300 ${
-            isActive ? 'text-primary-content' : 'text-base-content group-hover:text-primary'
-          }`} />
-          {sidebarOpen && (
-            <span className={`text-sm font-medium transition-all duration-300 ${
-              isActive ? 'text-primary-content' : 'text-base-content group-hover:text-primary'
-            }`}>
-              {item.name}
-            </span>
-          )}
-          {isActive && (
-            <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent opacity-50"></div>
-          )}
-        </Link>
-        
-        {/* 收缩状态下的工具提示 */}
-        {!sidebarOpen && !isMobile && (
-          <div className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 px-3 py-2 bg-base-300 text-base-content text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none z-50 whitespace-nowrap">
-            {item.name}
-            <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-base-300"></div>
-          </div>
-        )}
-      </li>
-    )
+    return buttonContent
   }
 
   return (
-    <aside 
-      className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-base-100/98 backdrop-blur-xl border-r border-base-200/50 shadow-xl transition-all duration-500 ease-in-out z-40 ${
-        sidebarOpen ? 'w-72' : 'w-16'
-      } ${
-        isMobile ? (sidebarOpen ? 'translate-x-0' : '-translate-x-full') : ''
-      }`}
-    >
-      <div className={`flex flex-col h-full transition-all duration-300 ${sidebarOpen ? 'p-3' : 'p-2'}`}>
-        {/* 收缩按钮 */}
-        <div className={`flex ${sidebarOpen ? 'justify-end' : 'justify-center'} mb-4`}>
-          <button
-            onClick={toggleSidebar}
-            className="p-2.5 hover:bg-base-200/70 rounded-xl transition-all duration-300 hover:scale-105 group relative ring-1 ring-transparent hover:ring-primary/20"
-            title={sidebarOpen ? "收起侧边栏" : "展开侧边栏"}
-          >
-            {sidebarOpen ? (
-              <ChevronLeftIcon className="w-5 h-5 text-base-content/80 group-hover:text-primary transition-all duration-300" />
-            ) : (
-              <ChevronRightIcon className="w-5 h-5 text-base-content/80 group-hover:text-primary transition-all duration-300" />
-            )}
-            {/* 状态指示器 */}
-            <div className={`absolute -bottom-0.5 -right-0.5 w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-              sidebarOpen ? 'bg-primary scale-100 shadow-sm' : 'bg-base-content/20 scale-0'
-            }`}></div>
-          </button>
-        </div>
-
-        {/* 主要导航 */}
-        <nav className="flex-1 space-y-6">
-          <div>
-            {sidebarOpen ? (
-              <div className="px-4 py-2 mb-3">
-                <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
-                  主要
-                </h3>
-              </div>
-            ) : (
-              <div className="mb-3 flex justify-center">
-                <div className="w-8 h-0.5 bg-primary/30 rounded-full"></div>
-              </div>
-            )}
-            <ul className="space-y-2">
-              {mainNavItems.map((item) => (
-                <NavItemComponent key={item.href} item={item} />
-              ))}
-            </ul>
-          </div>
-
-          {/* 用户相关导航 */}
-          {user && (
-            <div>
-              {sidebarOpen ? (
-                <div className="px-4 py-2 mb-3">
-                  <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
-                    个人
-                  </h3>
-                </div>
-              ) : (
-                <div className="mb-3 flex justify-center">
-                  <div className="w-8 h-0.5 bg-primary/30 rounded-full"></div>
-                </div>
-              )}
-              <ul className="space-y-2">
-                {userNavItems.map((item) => (
-                  <NavItemComponent key={item.href} item={item} />
-                ))}
-              </ul>
-            </div>
+    <aside className={cn(
+      "pb-4 transition-all duration-300 bg-sidebar border-r border-sidebar-border flex flex-col h-full", 
+      isCollapsed ? "w-20" : "w-64", 
+      className
+    )}>
+      {/* 顶部区域 */}
+      <header className={cn("pt-4 transition-all duration-300", isCollapsed ? "px-4" : "px-4")}>
+        {/* Logo/标题区域 */}
+        
+        {/* 添加按钮 */}
+        <Button
+          variant="ghost"
+          className={cn(
+            "transition-all duration-200 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground mb-6",
+            isCollapsed 
+              ? "w-12 h-12 p-0 rounded-xl mx-auto" 
+              : "w-full h-10 rounded-lg"
           )}
+        >
+          <Plus className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-2")} />
+          {!isCollapsed && <span className="font-medium text-sm">新建作品</span>}
+        </Button>
+      </header>
 
-          {/* 探索导航 */}
-          <div>
-            {sidebarOpen ? (
-              <div className="px-4 py-2 mb-3">
-                <h3 className="text-xs font-bold text-primary uppercase tracking-wider">
-                  探索
-                </h3>
+      {/* 主要导航区域 */}
+      <main className={cn("flex-1 transition-all duration-300", isCollapsed ? "px-4" : "px-4")}>
+        <ScrollArea className="h-full">
+          <nav className={cn("space-y-6", isCollapsed && "space-y-4")}>
+            {/* 主导航 */}
+            <section>
+              {!isCollapsed && (
+                <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase">
+                  导航
+                </h2>
+              )}
+              <div className={cn("space-y-1", isCollapsed && "space-y-2")}>
+                {navigationItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return renderMenuItem(item, isActive)
+                })}
               </div>
-            ) : (
-              <div className="mb-3 flex justify-center">
-                <div className="w-8 h-0.5 bg-primary/30 rounded-full"></div>
+            </section>
+
+            {/* 分隔线 */}
+            {!isCollapsed && (
+              <div className="px-2">
+                <Separator className="bg-sidebar-border" />
               </div>
             )}
-            <ul className="space-y-2">
-              {exploreNavItems.map((item) => (
-                <NavItemComponent key={item.href} item={item} />
-              ))}
-            </ul>
-          </div>
 
+            {/* 用户相关 */}
+            <section>
+              {!isCollapsed && (
+                <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase">
+                  个人
+                </h2>
+              )}
+              <div className={cn("space-y-1", isCollapsed && "space-y-2")}>
+                {userSections.map((section) => {
+                  const isActive = pathname === section.href
+                  return renderMenuItem(section, isActive)
+                })}
+              </div>
+            </section>
+          </nav>
+        </ScrollArea>
+      </main>
 
-        </nav>
-
-
-      </div>
+      {/* 底部设置 */}
+      <footer className={cn("pt-4 border-t border-sidebar-border transition-all duration-300", isCollapsed ? "px-4" : "px-4")}>
+        <Button
+          variant="ghost"
+          className={cn(
+            "transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
+            isCollapsed 
+              ? "w-12 h-12 p-0 rounded-xl mx-auto" 
+              : "w-full h-10 justify-start rounded-lg px-3"
+          )}
+        >
+          <Settings className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3")} />
+          {!isCollapsed && <span className="font-medium text-sm">设置</span>}
+        </Button>
+      </footer>
     </aside>
   )
 }

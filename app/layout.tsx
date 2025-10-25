@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "sonner";
+import { AuthProvider } from "../lib/providers/auth-provider";
 import "./globals.css";
-import "../styles/pixiv-animations.css";
-import { AuthProvider } from "@/components/providers/AuthProvider";
-import { LayoutProvider } from "@/components/providers/LayoutProvider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bismuth Book - 插画分享平台",
-  description: "一个类似Pixiv的漫画插画分享平台，使用Next.js和Supabase构建",
+  title: "Bismuth Book - 图片分享社区",
+  description: "一个美丽的图片分享和发现平台",
 };
 
 export default function RootLayout({
@@ -31,13 +29,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ThemeProvider>
-          <AuthProvider>
-            <LayoutProvider>
-              {children}
-            </LayoutProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          {children}
+          <Toaster 
+            position="top-right"
+            richColors
+            closeButton
+          />
+        </AuthProvider>
       </body>
     </html>
   );
