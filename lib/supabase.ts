@@ -37,6 +37,15 @@ export const STORAGE_BUCKET = process.env.NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET ||
 
 // Helper function to get public URL for uploaded images
 export const getImageUrl = (path: string) => {
+  if (!path || path.trim() === '') {
+    return ''
+  }
+  
+  // If the path is already a full URL, return it as is
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path
+  }
+  
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path)
   return data.publicUrl
 }

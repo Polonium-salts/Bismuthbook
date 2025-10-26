@@ -177,7 +177,13 @@ class ImageService {
 
       if (error) throw error
 
-      return data || []
+      // Convert storage paths to public URLs
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      })) || []
+
+      return processedData
     } catch (error) {
       console.error('Error fetching popular images:', error)
       throw error
@@ -203,7 +209,13 @@ class ImageService {
 
       if (error) throw error
 
-      return data || []
+      // Convert storage paths to public URLs
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      })) || []
+
+      return processedData
     } catch (error) {
       console.error('Error fetching recent images:', error)
       throw error
@@ -230,7 +242,13 @@ class ImageService {
 
       if (error) throw error
 
-      return data || []
+      // Convert storage paths to public URLs
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      })) || []
+
+      return processedData
     } catch (error) {
       console.error('Error fetching images by category:', error)
       throw error
@@ -273,7 +291,13 @@ class ImageService {
 
       if (error) throw error
 
-      return data || []
+      // Convert storage paths to public URLs
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      })) || []
+
+      return processedData
     } catch (error) {
       console.error('Error fetching related images:', error)
       throw error
@@ -535,9 +559,10 @@ class ImageService {
 
       if (error) throw error
 
-      // Process data to include user interaction status
+      // Process data to include user interaction status and convert image URLs
       const processedData = data?.map(image => ({
         ...image,
+        image_url: this.getImageUrl(image.image_url), // Convert storage path to public URL
         is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
         is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
         likes: undefined,

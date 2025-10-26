@@ -45,29 +45,38 @@ interface CommentSectionProps {
     name: string
     avatar: string
   }
+  isLoading?: boolean
+  isSubmitting?: boolean
+  onAddComment?: (content: string) => Promise<boolean>
+  onUpdateComment?: (commentId: string, content: string) => Promise<boolean>
+  onDeleteComment?: (commentId: string) => Promise<boolean>
 }
 
-export function CommentSection({ artworkId, comments: initialComments, currentUser }: CommentSectionProps) {
-  const [comments, setComments] = useState<Comment[]>(initialComments)
+export function CommentSection({ 
+  artworkId, 
+  comments, 
+  currentUser, 
+  isLoading = false,
+  isSubmitting = false,
+  onAddComment,
+  onUpdateComment,
+  onDeleteComment
+}: CommentSectionProps) {
   const [newComment, setNewComment] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
+  const [editingComment, setEditingComment] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
 
-  const handleSubmitComment = () => {
+  const handleSubmitComment = async () => {
     if (!newComment.trim() || !currentUser) return
 
-    const comment: Comment = {
-      id: Date.now().toString(),
-      user: currentUser,
-      content: newComment,
-      likes: 0,
-      isLiked: false,
-      createdAt: "刚刚",
-      replies: []
+    if (onAddComment) {
+      const success = await onAddComment(newComment.trim())
+      if (success) {
+        setNewComment("")
+      }
     }
-
-    setComments([comment, ...comments])
-    setNewComment("")
   }
 
   const handleSubmitReply = (parentId: string) => {
@@ -284,7 +293,7 @@ export function CommentSection({ artworkId, comments: initialComments, currentUs
           <div className="flex gap-2 sm:gap-3">
             <Avatar className="h-6 w-6 sm:h-8 sm:w-8 flex-shrink-0">
               <AvatarImage src={currentUser.avatar} />
-              <AvatarFallback className="text-xs sm:text-sm">{currentUser.name[0]}</AvatarFallback>
+              <AvatarFallback className="text-xs sm:text-sm">{currentUser.name?.[0] || 'U'}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
               <Textarea
@@ -298,11 +307,11 @@ export function CommentSection({ artworkId, comments: initialComments, currentUs
           <div className="flex justify-end">
             <Button 
               onClick={handleSubmitComment}
-              disabled={!newComment.trim()}
+              disabled={!newComment.trim() || isSubmitting}
               size="sm"
               className="text-sm"
             >
-              发表评论
+              {isSubmitting ? "发表中..." : "发表评论"}
             </Button>
           </div>
         </div>

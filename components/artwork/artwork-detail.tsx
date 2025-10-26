@@ -49,20 +49,21 @@ interface ArtworkDetailProps {
     software?: string[]
     category?: string
   }
+  onLike?: () => void
+  onBookmark?: () => void
 }
 
-export function ArtworkDetail({ artwork }: ArtworkDetailProps) {
-  const [isLiked, setIsLiked] = useState(artwork.isLiked)
-  const [isBookmarked, setIsBookmarked] = useState(artwork.isBookmarked)
-  const [likesCount, setLikesCount] = useState(artwork.likes)
-
+export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProps) {
   const handleLike = () => {
-    setIsLiked(!isLiked)
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1)
+    if (onLike) {
+      onLike()
+    }
   }
 
   const handleBookmark = () => {
-    setIsBookmarked(!isBookmarked)
+    if (onBookmark) {
+      onBookmark()
+    }
   }
 
   const handleShare = () => {
@@ -89,13 +90,22 @@ export function ArtworkDetail({ artwork }: ArtworkDetailProps) {
         {/* 图片区域 */}
         <div className="lg:col-span-2">
           <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-[4/5] w-full overflow-hidden rounded-lg bg-muted">
-            <Image
-              src={artwork.imageUrl}
-              alt={artwork.title}
-              fill
-              className="object-cover"
-              priority
-            />
+            {artwork.imageUrl ? (
+              <Image
+                src={artwork.imageUrl}
+                alt={artwork.title}
+                fill
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="text-center">
+                  <div className="text-4xl mb-2">🖼️</div>
+                  <p>图片加载失败</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -123,23 +133,23 @@ export function ArtworkDetail({ artwork }: ArtworkDetailProps) {
             {/* 操作按钮 */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4">
               <Button
-                variant={isLiked ? "default" : "outline"}
+                variant={artwork.isLiked ? "default" : "outline"}
                 size="sm"
                 onClick={handleLike}
                 className="flex-1 sm:flex-none sm:min-w-[100px]"
               >
-                <Heart className={`mr-2 h-4 w-4 ${isLiked ? "fill-current" : ""}`} />
-                <span className="hidden sm:inline">{likesCount}</span>
-                <span className="sm:hidden">{likesCount} 点赞</span>
+                <Heart className={`mr-2 h-4 w-4 ${artwork.isLiked ? "fill-current" : ""}`} />
+                <span className="hidden sm:inline">{artwork.likes}</span>
+                <span className="sm:hidden">{artwork.likes} 点赞</span>
               </Button>
               <div className="flex gap-2 sm:flex-1">
                 <Button
-                  variant={isBookmarked ? "default" : "outline"}
+                  variant={artwork.isBookmarked ? "default" : "outline"}
                   size="sm"
                   onClick={handleBookmark}
                   className="flex-1 sm:flex-none"
                 >
-                  <Bookmark className={`h-4 w-4 ${isBookmarked ? "fill-current" : ""}`} />
+                  <Bookmark className={`h-4 w-4 ${artwork.isBookmarked ? "fill-current" : ""}`} />
                   <span className="ml-2 sm:hidden">收藏</span>
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleShare} className="flex-1 sm:flex-none">
@@ -172,8 +182,8 @@ export function ArtworkDetail({ artwork }: ArtworkDetailProps) {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <Avatar className="h-12 w-12">
-                <AvatarImage src={artwork.artist.avatar} />
-                <AvatarFallback>{artwork.artist.name[0]}</AvatarFallback>
+                <AvatarImage src={artwork.artist.avatar || undefined} />
+                <AvatarFallback>{artwork.artist.name?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <h3 className="font-semibold">{artwork.artist.name}</h3>

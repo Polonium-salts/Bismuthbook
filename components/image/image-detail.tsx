@@ -22,7 +22,8 @@ import {
   User
 } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
-import { useInteractions, useComments } from "@/lib/hooks/use-interactions"
+import { useInteractions } from "@/lib/hooks/use-interactions"
+import { useComments } from "@/lib/hooks/use-interactions"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { ImageWithUserAndStats, Comment, CommentWithUser } from "@/lib/types/database"
@@ -42,12 +43,14 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
   
   const [newComment, setNewComment] = useState<string>("")
 
-  // 加载统计数据（当图片或用户改变时）
+  // 加载统计数据
   useEffect(() => {
     if (image?.id) {
       loadStats()
     }
-  }, [image?.id, user, loadStats])
+  }, [image?.id, loadStats])
+
+  // useInteractions hook 已经处理了点赞和收藏状态的加载
 
   // 获取评论
   useEffect(() => {

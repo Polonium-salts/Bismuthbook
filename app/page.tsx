@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PixivGrid } from "@/components/artwork/pixiv-grid"
 import { SearchBar } from "@/components/search/search-bar"
@@ -10,118 +10,144 @@ import { useAuth } from "@/lib/providers/auth-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Clock, Heart, Eye, ArrowDown, ArrowUp } from "lucide-react"
+import { TrendingUp, Clock, Heart, Eye } from "lucide-react"
 
 export default function Home() {
-  const { user } = useAuth()
-  const [viewMode, setViewMode] = useState<'popular' | 'recent'>('popular')
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState<'created_at' | 'like_count' | 'view_count'>('created_at')
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [filters, setFilters] = useState({})
+  const [viewMode, setViewMode] = useState<'popular' | 'recent' | 'search'>('popular')
+  const { user } = useAuth()
 
-  // 根据视图模式选择对应的 hook
-  const popularHook = usePopularImages()
-  const recentHook = useImages({
-    category: selectedCategory,
-    tags: selectedTags,
-    search: searchQuery,
-    sortBy,
-    sortOrder
+  // 使用真实数据 hooks
+  const {
+    images: searchResults,
+    isLoading: searchLoading,
+    error: searchError,
+    loadMore: loadMoreSearch,
+    hasMore: hasMoreSearch,
+    refresh: refreshSearch
+  } = useImages({
+    searchQuery,
+    category: filters.categories?.[0],
+    tags: filters.tags,
+    sortBy: filters.sortBy || 'created_at',
+    limit: 20
   })
 
-  // 根据当前视图模式选择数据源
-  const currentHook = viewMode === 'popular' ? popularHook : recentHook
-  const { images, isLoading, error, hasMore, loadMore, refresh } = currentHook
+  const {
+    images: popularImages,
+    isLoading: popularLoading,
+    error: popularError,
+    refresh: refreshPopular
+  } = usePopularImages('week', 20)
 
-  // 获取分类和标签数据
-  const { categories, loading: categoriesLoading } = useCategories()
-  const { tags, loading: tagsLoading } = usePopularTags()
+  const {
+    images: recentImages,
+    isLoading: recentLoading,
+    error: recentError,
+    loadMore: loadMoreRecent,
+    hasMore: hasMoreRecent,
+    refresh: refreshRecent
+  } = useImages({
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+    limit: 20
+  })
 
-  // 判断是否为搜索模式
-  const isSearchMode = searchQuery.trim() !== "" || selectedCategory !== "" || selectedTags.length > 0
+  const {
+    categories,
+    isLoading: categoriesLoading
+  } = useCategories()
 
-  const handleViewModeChange = (mode: 'popular' | 'recent') => {
-    setViewMode(mode)
-    // 切换模式时清空搜索条件
-    if (mode === 'popular') {
-      setSearchQuery("")
-      setSelectedCategory("")
-      setSelectedTags([])
+  const {
+    tags: popularTags,
+    isLoading: tagsLoading
+  } = usePopularTags(50)
+
+  // 根据视图模式决定显示的数据
+  const getDisplayData = () => {
+    if (searchQuery || Object.keys(filters).length > 0) {
+      return {
+        images: searchResults,
+        isLoading: searchLoading,
+        error: searchError,
+        loadMore: loadMoreSearch,
+        hasMore: hasMoreSearch,
+        refresh: refreshSearch
+      }
+    }
+    
+    switch (viewMode) {
+      case 'recent':
+        return {
+          images: recentImages,
+          isLoading: recentLoading,
+          error: recentError,
+          loadMore: loadMoreRecent,
+          hasMore: hasMoreRecent,
+          refresh: refreshRecent
+        }
+      case 'popular':
+      default:
+        return {
+          images: popularImages,
+          isLoading: popularLoading,
+          error: popularError,
+          loadMore: () => {},
+          hasMore: false,
+          refresh: refreshPopular
+        }
     }
   }
+
+  const { images, isLoading, error, loadMore, hasMore, refresh } = getDisplayData()
 
   const handleSearch = (query: string) => {
     setSearchQuery(query)
-    // 搜索时自动切换到最新模式
-    if (query.trim() !== "") {
-      setViewMode('recent')
-    }
   }
 
-  const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category)
-    // 选择分类时自动切换到最新模式
-    if (category !== "") {
-      setViewMode('recent')
-    }
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters)
   }
 
-  const handleTagsChange = (tags: string[]) => {
-    setSelectedTags(tags)
-    // 选择标签时自动切换到最新模式
-    if (tags.length > 0) {
-      setViewMode('recent')
-    }
+  const handleViewModeChange = (mode: 'popular' | 'recent' | 'search') => {
+    setViewMode(mode)
+    setSearchQuery("")
+    setFilters({})
   }
 
-  const handleSortChange = (field: 'created_at' | 'like_count' | 'view_count') => {
-    if (sortBy === field) {
-      // 如果点击的是当前排序字段，切换排序方向
-      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')
-    } else {
-      // 如果点击的是新字段，设置为该字段并默认降序
-      setSortBy(field)
-      setSortOrder('desc')
-    }
-  }
-
-  const getSortLabel = (field: 'created_at' | 'like_count' | 'view_count') => {
-    switch (field) {
-      case 'created_at':
-        return '时间'
-      case 'like_count':
-        return '点赞'
-      case 'view_count':
-        return '浏览'
-      default:
-        return ''
-    }
-  }
+  const isSearchMode = searchQuery || Object.keys(filters).length > 0
 
   return (
     <MainLayout>
       <div className="space-y-6">
-        {/* 搜索和筛选区域 */}
-        <div className="space-y-4">
-          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-border/50">
-            <SearchBar
-              value={searchQuery}
-              onChange={handleSearch}
-              placeholder="搜索作品标题、描述或标签..."
-              className="w-full"
-            />
-          </div>
+        {/* Pixiv风格的顶部横幅 */}
+        <div className="relative bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20 rounded-2xl p-8 overflow-hidden">
+          {/* 背景装饰 */}
+          <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-blue-200/30 to-transparent rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-purple-200/30 to-transparent rounded-full blur-3xl" />
           
-          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-border/50">
-            <SearchFilters
-              categories={categories}
-              tags={tags}
-              selectedCategory={selectedCategory}
-              selectedTags={selectedTags}
-              onCategoryChange={handleCategoryChange}
-              onTagsChange={handleTagsChange}
+          <div className="relative z-10 text-center space-y-6">
+            <div className="space-y-3">
+              <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                发现创意世界
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                探索来自全球艺术家的精彩作品，发现无限创意灵感
+              </p>
+            </div>
+            
+            {/* 搜索栏 */}
+            <div className="max-w-2xl mx-auto">
+              <SearchBar onSearch={handleSearch} />
+            </div>
+            
+            {/* 筛选器 */}
+            <SearchFilters 
+              onFiltersChange={handleFiltersChange}
+              categories={categories.map(c => c.name)}
+              popularTags={popularTags.map(t => t.name)}
               loading={categoriesLoading || tagsLoading}
             />
           </div>
@@ -129,96 +155,36 @@ export default function Home() {
 
         {/* 视图模式切换 */}
         {!isSearchMode && (
-          <div className="bg-card/50 backdrop-blur-sm rounded-2xl p-4 md:p-6 border border-border/50">
-            <div className="flex flex-col space-y-4 md:flex-row md:space-y-0 md:items-center md:justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                  {viewMode === 'popular' ? (
-                    <TrendingUp className="w-4 h-4 text-white" />
-                  ) : (
-                    <Clock className="w-4 h-4 text-white" />
-                  )}
-                </div>
-                <h2 className="text-xl md:text-2xl font-bold text-foreground">
-                  {viewMode === 'popular' ? '热门作品' : '最新作品'}
-                </h2>
-                {(images.length > 0 || isLoading) && (
-                  <span className="text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border/30">
-                    {isLoading ? '加载中...' : `${images.length} 件作品`}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col space-y-3 md:flex-row md:space-y-0 md:space-x-4">
-                {/* 视图模式切换 */}
-                <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-border/30">
-                  <Button
-                    variant={viewMode === 'popular' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => handleViewModeChange('popular')}
-                    className={`transition-all duration-300 rounded-lg ${
-                      viewMode === 'popular' 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    热门
-                  </Button>
-                  <Button
-                    variant={viewMode === 'recent' ? 'default' : 'ghost'}
-                    size="sm"
-                    onClick={() => handleViewModeChange('recent')}
-                    className={`transition-all duration-300 rounded-lg ${
-                      viewMode === 'recent' 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
-                        : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    最新
-                  </Button>
-                </div>
-
-                {/* 排序控件 */}
-                <div className="flex items-center bg-muted/30 rounded-xl p-1 border border-border/30">
-                  {(['created_at', 'like_count', 'view_count'] as const).map((field) => (
-                    <Button
-                      key={field}
-                      variant={sortBy === field ? 'default' : 'ghost'}
-                      size="sm"
-                      onClick={() => handleSortChange(field)}
-                      className={`transition-all duration-300 rounded-lg ${
-                        sortBy === field 
-                          ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg shadow-green-500/25' 
-                          : 'hover:bg-muted/50'
-                      }`}
-                    >
-                      {field === 'created_at' && <Clock className="w-3 h-3 mr-1" />}
-                      {field === 'like_count' && <Heart className="w-3 h-3 mr-1" />}
-                      {field === 'view_count' && <Eye className="w-3 h-3 mr-1" />}
-                      <span className="text-xs md:text-sm">{getSortLabel(field)}</span>
-                      {sortBy === field && (
-                        sortOrder === 'desc' ? 
-                          <ArrowDown className="w-3 h-3 ml-1" /> : 
-                          <ArrowUp className="w-3 h-3 ml-1" />
-                      )}
-                    </Button>
-                  ))}
-                </div>
-
-                {/* 刷新按钮 */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={refresh}
-                  disabled={isLoading}
-                  className="hover:bg-muted/50 transition-all duration-300"
-                >
-                  {isLoading ? "刷新中..." : "刷新"}
-                </Button>
-              </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Button
+                variant={viewMode === 'popular' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewModeChange('popular')}
+                className="flex items-center space-x-2"
+              >
+                <TrendingUp className="w-4 h-4" />
+                <span>热门作品</span>
+              </Button>
+              <Button
+                variant={viewMode === 'recent' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => handleViewModeChange('recent')}
+                className="flex items-center space-x-2"
+              >
+                <Clock className="w-4 h-4" />
+                <span>最新作品</span>
+              </Button>
             </div>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              disabled={isLoading}
+            >
+              {isLoading ? "刷新中..." : "刷新"}
+            </Button>
           </div>
         )}
 
@@ -253,7 +219,7 @@ export default function Home() {
           </div>
         </div>
         
-        {/* 错误状态 */}
+        {/* 错误提示 */}
         {error && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <div className="flex items-center gap-2 text-destructive">
@@ -272,7 +238,7 @@ export default function Home() {
           </div>
         )}
         
-        {/* 加载状态 */}
+        {/* 加载骨架屏 */}
         {isLoading && images.length === 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
             {Array.from({ length: 10 }).map((_, i) => (
@@ -287,7 +253,7 @@ export default function Home() {
           </div>
         )}
         
-        {/* 作品网格 */}
+        {/* Pixiv风格作品网格 */}
         {!isLoading && images.length > 0 && (
           <PixivGrid
             artworks={images}
@@ -297,7 +263,7 @@ export default function Home() {
           />
         )}
         
-        {/* 空状态 */}
+        {/* 无结果提示 */}
         {!isLoading && images.length === 0 && !error && (
           <div className="text-center py-16">
             <div className="max-w-md mx-auto space-y-4">
