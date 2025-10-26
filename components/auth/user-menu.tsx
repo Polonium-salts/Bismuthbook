@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -14,13 +15,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { User, Settings, Upload, Heart, LogOut, Plus } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { AuthModal } from "./auth-modal"
-import { UploadModal } from "@/components/upload/upload-modal"
 import { toast } from "sonner"
 
 export function UserMenu() {
   const { user, signOut } = useAuth()
   const [showAuthModal, setShowAuthModal] = useState(false)
-  const [showUploadModal, setShowUploadModal] = useState(false)
   const [authMode, setAuthMode] = useState<"login" | "register">("login")
 
   const handleLogin = () => {
@@ -72,10 +71,12 @@ export function UserMenu() {
           variant="outline" 
           size="sm" 
           className="hidden sm:flex"
-          onClick={() => setShowUploadModal(true)}
+          asChild
         >
-          <Plus className="h-4 w-4 mr-2" />
-          上传作品
+          <Link href="/upload">
+            <Plus className="h-4 w-4 mr-2" />
+            上传作品
+          </Link>
         </Button>
 
         <DropdownMenu>
@@ -99,21 +100,29 @@ export function UserMenu() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>个人资料</span>
+            <DropdownMenuItem asChild>
+              <Link href="/profile">
+                <User className="mr-2 h-4 w-4" />
+                <span>个人资料</span>
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Upload className="mr-2 h-4 w-4" />
-              <span>我的作品</span>
+            <DropdownMenuItem asChild>
+              <Link href="/my-works">
+                <Upload className="mr-2 h-4 w-4" />
+                <span>我的作品</span>
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Heart className="mr-2 h-4 w-4" />
-              <span>我的收藏</span>
+            <DropdownMenuItem asChild>
+              <Link href="/bookmarks">
+                <Heart className="mr-2 h-4 w-4" />
+                <span>我的收藏</span>
+              </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>设置</span>
+            <DropdownMenuItem asChild>
+              <Link href="/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>设置</span>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
@@ -123,11 +132,6 @@ export function UserMenu() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
-      <UploadModal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-      />
     </>
   )
 }

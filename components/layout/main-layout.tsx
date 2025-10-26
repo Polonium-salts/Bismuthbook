@@ -42,10 +42,12 @@ export function MainLayout({ children }: MainLayoutProps) {
 
         {/* Main Content */}
         <main className={cn(
-          "flex-1 transition-all duration-300",
-          sidebarCollapsed ? "md:pl-20" : "md:pl-64"
+          "flex-1 transition-all duration-300 p-6",
+          sidebarCollapsed ? "md:pl-26" : "md:pl-70"
         )}>
-          {children}
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

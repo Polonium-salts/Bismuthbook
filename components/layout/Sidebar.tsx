@@ -1,7 +1,8 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { Home, TrendingUp, Heart, Bookmark, User, Users, Settings, Plus } from "lucide-react"
+import Link from 'next/link'
+import { Home, TrendingUp, Heart, Bookmark, User, Users, Settings, Plus, Grid3X3 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
@@ -16,6 +17,7 @@ interface SidebarProps {
 
 const navigationItems = [
   { icon: Home, label: "首页", href: "/" },
+  { icon: Grid3X3, label: "画廊", href: "/gallery" },
   { icon: TrendingUp, label: "热门", href: "/trending" },
   { icon: Heart, label: "关注", href: "/following" },
   { icon: Bookmark, label: "收藏", href: "/bookmarks" },
@@ -34,6 +36,7 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
       <Button
         key={item.href}
         variant="ghost"
+        asChild
         className={cn(
           "w-full transition-all duration-200 group relative",
           isCollapsed 
@@ -44,20 +47,22 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
           !isActive && "text-sidebar-foreground/70 hover:text-sidebar-foreground"
         )}
       >
-        <item.icon className={cn(
-          "transition-all duration-200", 
-          isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
-          isActive && isCollapsed && "text-sidebar-primary-foreground",
-          isActive && !isCollapsed && "text-sidebar-primary"
-        )} />
-        {!isCollapsed && (
-          <span className="font-medium text-sm transition-all duration-200">{item.label}</span>
-        )}
-        
-        {/* 选中指示器 - 仅在展开状态显示 */}
-        {isActive && !isCollapsed && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary rounded-r-full" />
-        )}
+        <Link href={item.href}>
+          <item.icon className={cn(
+            "transition-all duration-200", 
+            isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3",
+            isActive && isCollapsed && "text-sidebar-primary-foreground",
+            isActive && !isCollapsed && "text-sidebar-primary"
+          )} />
+          {!isCollapsed && (
+            <span className="font-medium text-sm transition-all duration-200">{item.label}</span>
+          )}
+          
+          {/* 选中指示器 - 仅在展开状态显示 */}
+          {isActive && !isCollapsed && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary rounded-r-full" />
+          )}
+        </Link>
       </Button>
     )
 
@@ -92,6 +97,7 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
         {/* 添加按钮 */}
         <Button
           variant="ghost"
+          asChild
           className={cn(
             "transition-all duration-200 bg-sidebar-primary hover:bg-sidebar-primary/90 text-sidebar-primary-foreground mb-6",
             isCollapsed 
@@ -99,8 +105,10 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
               : "w-full h-10 rounded-lg"
           )}
         >
-          <Plus className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-2")} />
-          {!isCollapsed && <span className="font-medium text-sm">新建作品</span>}
+          <Link href="/upload">
+            <Plus className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-2")} />
+            {!isCollapsed && <span className="font-medium text-sm">新建作品</span>}
+          </Link>
         </Button>
       </header>
 

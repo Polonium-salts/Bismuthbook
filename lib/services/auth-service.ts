@@ -56,7 +56,23 @@ class AuthService {
 
         if (profileError) {
           console.error('Error creating user profile:', profileError)
-          // Don't throw error here as the user is already created
+          // Try to create a minimal profile as fallback
+          const fallbackProfile = {
+            id: authData.user.id,
+            username: `user_${authData.user.id.substring(0, 8)}`,
+            full_name: data.fullName || 'User',
+            avatar_url: null,
+            bio: null,
+            website: null
+          }
+          
+          const { error: fallbackError } = await supabase
+            .from('user_profiles')
+            .insert(fallbackProfile)
+            
+          if (fallbackError) {
+            console.error('Error creating fallback user profile:', fallbackError)
+          }
         }
       }
 
@@ -114,7 +130,7 @@ class AuthService {
         .from('user_profiles')
         .select('*')
         .eq('id', userId)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 
@@ -247,7 +263,7 @@ class AuthService {
         .from('user_profiles')
         .select('*')
         .eq('username', username)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 
@@ -258,10 +274,54 @@ class AuthService {
     }
   }
 
+  // Ensure user profile exists for authenticated user
+  async ensureUserProfile(user: User): Promise<UserProfile | null> {
+    try {
+      // Check if profile exists
+      const existingProfile = await this.getUserProfile(user.id)
+      if (existingProfile) {
+        return existingProfile
+      }
+
+      // Create missing profile
+      const profileData: UserProfileInsert = {
+        id: user.id,
+        username: user.user_metadata?.username || `user_${user.id.substring(0, 8)}`,
+        full_name: user.user_metadata?.full_name || 'User',
+        avatar_url: null,
+        bio: null,
+        website: null
+      }
+
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .insert(profileData)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error creating missing user profile:', error)
+        return null
+      }
+
+      return data
+    } catch (error) {
+      console.error('Error ensuring user profile:', error)
+      return null
+    }
+  }
+
   // Listen to auth state changes
   onAuthStateChange(callback: (user: User | null) => void) {
-    return supabase.auth.onAuthStateChange((event, session) => {
-      callback(session?.user || null)
+    return supabase.auth.onAuthStateChange(async (event, session) => {
+      const user = session?.user || null
+      
+      // Ensure user profile exists when user signs in
+      if (user && event === 'SIGNED_IN') {
+        await this.ensureUserProfile(user)
+      }
+      
+      callback(user)
     })
   }
 

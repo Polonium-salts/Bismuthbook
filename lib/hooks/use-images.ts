@@ -49,7 +49,7 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
       const data = await imageService.getImages({
         ...currentOptions,
         offset: currentOffset
-      })
+      }, currentOptions.userId)
 
       if (append) {
         setImages(prev => [...prev, ...data])

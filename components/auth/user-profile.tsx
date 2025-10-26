@@ -74,7 +74,7 @@ export function UserProfile({ children }: UserProfileProps) {
         .from('user_profiles')
         .select('*')
         .eq('id', user.id)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 

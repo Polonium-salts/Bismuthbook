@@ -52,7 +52,13 @@ class ImageService {
 
       if (error) throw error
 
-      return image as ImageWithUser
+      // Convert storage path to public URL
+      const processedImage = {
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      }
+
+      return processedImage as ImageWithUser
     } catch (error) {
       console.error('Error uploading image:', error)
       throw error
@@ -61,57 +67,70 @@ class ImageService {
 
   // Get images with filters and pagination
   async getImages(filters: ImageFilters = {}, userId?: string): Promise<ImageWithUserAndStats[]> {
-    try {
-      let query = supabase
-        .from('images')
-        .select(`
-          *,
-          user_profiles (*),
-          likes!left (user_id),
-          favorites!left (user_id)
-        `)
+    const maxRetries = 3
+    let lastError: any
 
-      // Apply filters
-      if (filters.category) {
-        query = query.eq('category', filters.category)
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        let query = supabase
+          .from('images')
+          .select(`
+            *,
+            user_profiles (*),
+            likes!left (user_id),
+            favorites!left (user_id)
+          `)
+
+        // Apply filters
+        if (filters.category) {
+          query = query.eq('category', filters.category)
+        }
+
+        if (filters.tags && filters.tags.length > 0) {
+          query = query.overlaps('tags', filters.tags)
+        }
+
+        // Apply sorting
+        const sortBy = filters.sortBy || 'created_at'
+        const sortOrder = filters.sortOrder || 'desc'
+        query = query.order(sortBy, { ascending: sortOrder === 'asc' })
+
+        // Apply pagination
+        if (filters.limit) {
+          query = query.limit(filters.limit)
+        }
+
+        if (filters.offset) {
+          query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1)
+        }
+
+        const { data, error } = await query
+
+        if (error) throw error
+
+        // Process data to include user interaction status and convert image URLs
+        const processedData = data?.map(image => ({
+          ...image,
+          image_url: this.getImageUrl(image.image_url), // Convert storage path to public URL
+          is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
+          is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
+          likes: undefined, // Remove the raw likes data
+          favorites: undefined // Remove the raw favorites data
+        })) || []
+
+        return processedData as ImageWithUserAndStats[]
+      } catch (error) {
+        lastError = error
+        console.error(`Error fetching images (attempt ${attempt}/${maxRetries}):`, error)
+        
+        if (attempt < maxRetries) {
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+        }
       }
-
-      if (filters.tags && filters.tags.length > 0) {
-        query = query.overlaps('tags', filters.tags)
-      }
-
-      // Apply sorting
-      const sortBy = filters.sortBy || 'created_at'
-      const sortOrder = filters.sortOrder || 'desc'
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' })
-
-      // Apply pagination
-      if (filters.limit) {
-        query = query.limit(filters.limit)
-      }
-
-      if (filters.offset) {
-        query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1)
-      }
-
-      const { data, error } = await query
-
-      if (error) throw error
-
-      // Process data to include user interaction status
-      const processedData = data?.map(image => ({
-        ...image,
-        is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
-        is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
-        likes: undefined, // Remove the raw likes data
-        favorites: undefined // Remove the raw favorites data
-      })) || []
-
-      return processedData as ImageWithUserAndStats[]
-    } catch (error) {
-      console.error('Error fetching images:', error)
-      throw error
     }
+
+    throw lastError
   }
 
   // Get popular images (trending)
@@ -371,7 +390,7 @@ class ImageService {
           favorites!left (user_id)
         `)
         .eq('id', id)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
 
@@ -380,9 +399,10 @@ class ImageService {
       // Increment view count
       await this.incrementViewCount(id)
 
-      // Process data to include user interaction status
+      // Process data to include user interaction status and convert image URL
       const processedData = {
         ...data,
+        image_url: this.getImageUrl(data.image_url), // Convert storage path to public URL
         is_liked: userId ? data.likes.some((like: any) => like.user_id === userId) : false,
         is_favorited: userId ? data.favorites.some((fav: any) => fav.user_id === userId) : false,
         likes: undefined,
@@ -466,7 +486,13 @@ class ImageService {
 
       if (error) throw error
 
-      return data as ImageWithUser[]
+      // Convert storage paths to public URLs
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url)
+      })) || []
+
+      return processedData as ImageWithUser[]
     } catch (error) {
       console.error('Error fetching user images:', error)
       throw error

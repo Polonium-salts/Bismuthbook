@@ -46,7 +46,7 @@ export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
                 <div className="absolute inset-0 bg-primary/20 rounded-full blur-sm group-hover:blur-md transition-all duration-300 opacity-0 group-hover:opacity-100" />
               </div>
               <span className="font-bold text-xl bg-gradient-to-r from-primary via-primary/90 to-primary/80 bg-clip-text text-transparent group-hover:from-primary/90 group-hover:via-primary/80 group-hover:to-primary/70 transition-all duration-300 hidden sm:block">
-                PixivClone
+                BismuthBook
               </span>
             </div>
           </a>

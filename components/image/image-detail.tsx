@@ -22,8 +22,7 @@ import {
   User
 } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
-import { useInteractions } from "@/lib/hooks/use-interactions"
-import { useComments } from "@/lib/hooks/use-interactions"
+import { useInteractions, useComments } from "@/lib/hooks/use-interactions"
 import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
 import { ImageWithUserAndStats, Comment, CommentWithUser } from "@/lib/types/database"
@@ -43,45 +42,12 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
   
   const [newComment, setNewComment] = useState<string>("")
 
-  // 加载统计数据
+  // 加载统计数据（当图片或用户改变时）
   useEffect(() => {
     if (image?.id) {
       loadStats()
     }
-  }, [image?.id, loadStats])
-
-  // 获取点赞和收藏状态
-  useEffect(() => {
-    if (!image || !user) return
-
-    const fetchUserInteractions = async () => {
-      try {
-        // 检查是否已点赞
-        const { data: likeData } = await supabase
-          .from('likes')
-          .select('id')
-          .eq('image_id', image.id)
-          .eq('user_id', user.id)
-          .single()
-
-        setIsLiked(!!likeData)
-
-        // 检查是否已收藏
-        const { data: favoriteData } = await supabase
-          .from('favorites')
-          .select('id')
-          .eq('image_id', image.id)
-          .eq('user_id', user.id)
-          .single()
-
-        setIsFavorited(!!favoriteData)
-      } catch (error) {
-        console.error('Error fetching user interactions:', error)
-      }
-    }
-
-    fetchUserInteractions()
-  }, [image, user])
+  }, [image?.id, user, loadStats])
 
   // 获取评论
   useEffect(() => {
