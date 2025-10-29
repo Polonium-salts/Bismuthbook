@@ -2,12 +2,13 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Home, TrendingUp, Heart, Bookmark, User, Users, Settings, Plus, Grid3X3 } from "lucide-react"
+import { Home, Heart, Bookmark, User, Settings, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface SidebarProps {
   className?: string
@@ -17,15 +18,12 @@ interface SidebarProps {
 
 const navigationItems = [
   { icon: Home, label: "首页", href: "/" },
-  { icon: Grid3X3, label: "画廊", href: "/gallery" },
-  { icon: TrendingUp, label: "热门", href: "/trending" },
   { icon: Heart, label: "关注", href: "/following" },
   { icon: Bookmark, label: "收藏", href: "/bookmarks" },
 ]
 
 const userSections = [
-  { icon: User, label: "我的作品", href: "/my-works" },
-  { icon: Users, label: "关注的艺术家", href: "/following-artists" },
+  { icon: User, label: "个人首页", href: "/profile" },
 ]
 
 export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
@@ -54,14 +52,33 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
             isActive && isCollapsed && "text-sidebar-primary-foreground",
             isActive && !isCollapsed && "text-sidebar-primary"
           )} />
-          {!isCollapsed && (
-            <span className="font-medium text-sm transition-all duration-200">{item.label}</span>
-          )}
-          
-          {/* 选中指示器 - 仅在展开状态显示 */}
-          {isActive && !isCollapsed && (
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary rounded-r-full" />
-          )}
+          <AnimatePresence initial={false}>
+            {!isCollapsed && (
+              <motion.span
+                key="label"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="font-medium text-sm"
+              >
+                {item.label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+          {/* 选中指示器 - 仅在展开状态显示，增加出现动画 */}
+          <AnimatePresence>
+            {isActive && !isCollapsed && (
+              <motion.div
+                key="active-indicator"
+                initial={{ opacity: 0, scaleY: 0 }}
+                animate={{ opacity: 1, scaleY: 1 }}
+                exit={{ opacity: 0, scaleY: 0 }}
+                transition={{ duration: 0.16 }}
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-sidebar-primary rounded-r-full"
+              />
+            )}
+          </AnimatePresence>
         </Link>
       </Button>
     )
@@ -107,7 +124,20 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
         >
           <Link href="/upload">
             <Plus className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-2")} />
-            {!isCollapsed && <span className="font-medium text-sm">新建作品</span>}
+            <AnimatePresence initial={false}>
+              {!isCollapsed && (
+                <motion.span
+                  key="create-label"
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -8 }}
+                  transition={{ duration: 0.18, ease: "easeOut" }}
+                  className="font-medium text-sm"
+                >
+                  新建作品
+                </motion.span>
+              )}
+            </AnimatePresence>
           </Link>
         </Button>
       </header>
@@ -115,15 +145,24 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
       {/* 主要导航区域 */}
       <main className={cn("flex-1 transition-all duration-300", isCollapsed ? "px-4" : "px-4")}>
         <ScrollArea className="h-full">
-          <nav className={cn("space-y-6", isCollapsed && "space-y-4")}>
+          <nav className={cn("space-y-6", isCollapsed && "space-y-4")}> 
             {/* 主导航 */}
             <section>
-              {!isCollapsed && (
-                <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase">
-                  导航
-                </h2>
-              )}
-              <div className={cn("space-y-1", isCollapsed && "space-y-2")}>
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.h2
+                    key="nav-title"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase"
+                  >
+                    导航
+                  </motion.h2>
+                )}
+              </AnimatePresence>
+              <div className={cn("space-y-1", isCollapsed && "space-y-2")}> 
                 {navigationItems.map((item) => {
                   const isActive = pathname === item.href
                   return renderMenuItem(item, isActive)
@@ -132,20 +171,38 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
             </section>
 
             {/* 分隔线 */}
-            {!isCollapsed && (
-              <div className="px-2">
-                <Separator className="bg-sidebar-border" />
-              </div>
-            )}
+            <AnimatePresence initial={false}>
+              {!isCollapsed && (
+                <motion.div
+                  key="separator"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.14 }}
+                  className="px-2"
+                >
+                  <Separator className="bg-sidebar-border" />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* 用户相关 */}
             <section>
-              {!isCollapsed && (
-                <h2 className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase">
-                  个人
-                </h2>
-              )}
-              <div className={cn("space-y-1", isCollapsed && "space-y-2")}>
+              <AnimatePresence initial={false}>
+                {!isCollapsed && (
+                  <motion.h2
+                    key="user-title"
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.16 }}
+                    className="mb-3 px-2 text-xs font-semibold tracking-wider text-sidebar-foreground/60 uppercase"
+                  >
+                    个人
+                  </motion.h2>
+                )}
+              </AnimatePresence>
+              <div className={cn("space-y-1", isCollapsed && "space-y-2")}> 
                 {userSections.map((section) => {
                   const isActive = pathname === section.href
                   return renderMenuItem(section, isActive)
@@ -157,7 +214,7 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
       </main>
 
       {/* 底部设置 */}
-      <footer className={cn("pt-4 border-t border-sidebar-border transition-all duration-300", isCollapsed ? "px-4" : "px-4")}>
+      <footer className={cn("pt-4 border-t border-sidebar-border transition-all duration-300", isCollapsed ? "px-4" : "px-4")}> 
         <Button
           variant="ghost"
           className={cn(
@@ -168,7 +225,20 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
           )}
         >
           <Settings className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3")} />
-          {!isCollapsed && <span className="font-medium text-sm">设置</span>}
+          <AnimatePresence initial={false}>
+            {!isCollapsed && (
+              <motion.span
+                key="settings-label"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.18, ease: "easeOut" }}
+                className="font-medium text-sm"
+              >
+                设置
+              </motion.span>
+            )}
+          </AnimatePresence>
         </Button>
       </footer>
     </aside>

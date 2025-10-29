@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PixivGrid } from "@/components/artwork/pixiv-grid"
 import { SearchBar } from "@/components/search/search-bar"
@@ -102,21 +102,24 @@ export default function Home() {
 
   const { images, isLoading, error, loadMore, hasMore, refresh } = getDisplayData()
 
-  const handleSearch = (query: string) => {
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query)
-  }
+  }, [])
 
-  const handleFiltersChange = (newFilters: any) => {
+  const handleFiltersChange = useCallback((newFilters: any) => {
     setFilters(newFilters)
-  }
+  }, [])
 
-  const handleViewModeChange = (mode: 'popular' | 'recent' | 'search') => {
+  const handleViewModeChange = useCallback((mode: 'popular' | 'recent' | 'search') => {
     setViewMode(mode)
     setSearchQuery("")
     setFilters({})
-  }
+  }, [])
 
-  const isSearchMode = searchQuery || Object.keys(filters).length > 0
+  const isSearchMode = useMemo(() => 
+    searchQuery || Object.keys(filters).length > 0, 
+    [searchQuery, filters]
+  )
 
   return (
     <MainLayout>

@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { ImageCard } from "@/components/image/image-card"
 import { cn } from "@/lib/utils"
 import { ImageWithUserAndStats } from "@/lib/types/database"
@@ -9,7 +10,7 @@ interface ArtworkGridProps {
   className?: string
 }
 
-export function ArtworkGrid({ artworks, className }: ArtworkGridProps) {
+const ArtworkGrid = memo(function ArtworkGrid({ artworks, className }: ArtworkGridProps) {
   return (
     <div className={cn("w-full", className)}>
       {/* Responsive grid layout */}
@@ -23,4 +24,6 @@ export function ArtworkGrid({ artworks, className }: ArtworkGridProps) {
       </div>
     </div>
   )
-}
+})
+
+export { ArtworkGrid }

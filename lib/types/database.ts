@@ -92,6 +92,42 @@ export type Database = {
           },
         ]
       }
+      follows: {
+        Row: {
+          created_at: string | null
+          follower_id: string
+          following_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string | null
+          follower_id: string
+          following_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string | null
+          follower_id?: string
+          following_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follows_follower_id_fkey"
+            columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follows_following_id_fkey"
+            columns: ["following_id"]
+            isOneToOne: false
+            referencedRelation: "user_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       images: {
         Row: {
           category: string | null
@@ -101,7 +137,9 @@ export type Database = {
           id: string
           image_url: string
           is_featured: boolean | null
+          is_published: boolean | null
           like_count: number | null
+          published_at: string | null
           tags: string[] | null
           title: string
           user_id: string
@@ -115,7 +153,9 @@ export type Database = {
           id?: string
           image_url: string
           is_featured?: boolean | null
+          is_published?: boolean | null
           like_count?: number | null
+          published_at?: string | null
           tags?: string[] | null
           title: string
           user_id: string
@@ -129,7 +169,9 @@ export type Database = {
           id?: string
           image_url?: string
           is_featured?: boolean | null
+          is_published?: boolean | null
           like_count?: number | null
+          published_at?: string | null
           tags?: string[] | null
           title?: string
           user_id?: string
@@ -334,12 +376,14 @@ export type Image = Database['public']['Tables']['images']['Row']
 export type Like = Database['public']['Tables']['likes']['Row']
 export type Favorite = Database['public']['Tables']['favorites']['Row']
 export type Comment = Database['public']['Tables']['comments']['Row']
+export type Follow = Database['public']['Tables']['follows']['Row']
 
 export type ImageInsert = Database['public']['Tables']['images']['Insert']
 export type UserProfileInsert = Database['public']['Tables']['user_profiles']['Insert']
 export type LikeInsert = Database['public']['Tables']['likes']['Insert']
 export type FavoriteInsert = Database['public']['Tables']['favorites']['Insert']
 export type CommentInsert = Database['public']['Tables']['comments']['Insert']
+export type FollowInsert = Database['public']['Tables']['follows']['Insert']
 
 export type ImageUpdate = Database['public']['Tables']['images']['Update']
 export type UserProfileUpdate = Database['public']['Tables']['user_profiles']['Update']
@@ -364,4 +408,16 @@ export interface ImageWithUserAndStats extends ImageWithUser {
 
 export interface CommentWithUser extends Comment {
   user_profiles: UserProfile
+}
+
+export interface FollowWithUser extends Follow {
+  follower: UserProfile
+  following: UserProfile
+}
+
+export interface UserStats {
+  artworks_count: number
+  likes_count: number
+  followers_count: number
+  following_count: number
 }

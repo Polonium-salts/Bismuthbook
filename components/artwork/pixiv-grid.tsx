@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { PixivCard } from "./pixiv-card"
 import { cn } from "@/lib/utils"
@@ -13,7 +13,7 @@ interface PixivGridProps {
   isLoading?: boolean
 }
 
-export function PixivGrid({ 
+const PixivGrid = memo(function PixivGrid({ 
   artworks, 
   className, 
   onLoadMore, 
@@ -27,20 +27,20 @@ export function PixivGrid({
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   // 响应式列数计算
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = window.innerWidth
-      if (width < 640) setColumns(2)      // sm
-      else if (width < 768) setColumns(3) // md
-      else if (width < 1024) setColumns(4) // lg
-      else if (width < 1280) setColumns(5) // xl
-      else setColumns(6)                   // 2xl
-    }
+  const updateColumns = useCallback(() => {
+    const width = window.innerWidth
+    if (width < 640) setColumns(2)      // sm
+    else if (width < 768) setColumns(3) // md
+    else if (width < 1024) setColumns(4) // lg
+    else if (width < 1280) setColumns(5) // xl
+    else setColumns(6)                   // 2xl
+  }, [])
 
+  useEffect(() => {
     updateColumns()
     window.addEventListener('resize', updateColumns)
     return () => window.removeEventListener('resize', updateColumns)
-  }, [])
+  }, [updateColumns])
 
   // 初始化列高度
   useEffect(() => {
@@ -138,4 +138,6 @@ export function PixivGrid({
       )}
     </div>
   )
-}
+})
+
+export { PixivGrid }

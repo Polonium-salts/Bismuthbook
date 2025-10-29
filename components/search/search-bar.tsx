@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, memo, useCallback, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,7 +31,7 @@ interface SearchBarProps {
   placeholder?: string
 }
 
-export function SearchBar({ onSearch, placeholder = "搜索作品、艺术家或标签..." }: SearchBarProps) {
+const SearchBar = memo(function SearchBar({ onSearch, placeholder = "搜索作品、艺术家或标签..." }: SearchBarProps) {
   const [query, setQuery] = useState("")
   const [isOpen, setIsOpen] = useState(false)
   const [recentSearches, setRecentSearches] = useState([
@@ -40,16 +40,16 @@ export function SearchBar({ onSearch, placeholder = "搜索作品、艺术家或
   const inputRef = useRef<HTMLInputElement>(null)
 
   // 热门搜索建议
-  const popularSearches = [
+  const popularSearches = useMemo(() => [
     { type: "tag", text: "原创", icon: Hash },
     { type: "tag", text: "同人", icon: Hash },
     { type: "artist", text: "知名画师", icon: User },
     { type: "keyword", text: "机甲", icon: TrendingUp },
     { type: "keyword", text: "风景", icon: TrendingUp },
     { type: "keyword", text: "肖像", icon: TrendingUp },
-  ]
+  ], [])
 
-  const handleSearch = (searchQuery: string = query) => {
+  const handleSearch = useCallback((searchQuery: string = query) => {
     if (searchQuery.trim()) {
       // 添加到最近搜索
       const newRecentSearches = [
@@ -62,24 +62,24 @@ export function SearchBar({ onSearch, placeholder = "搜索作品、艺术家或
       setIsOpen(false)
       inputRef.current?.blur()
     }
-  }
+  }, [query, recentSearches, onSearch])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       handleSearch()
     } else if (e.key === "Escape") {
       setIsOpen(false)
       inputRef.current?.blur()
     }
-  }
+  }, [handleSearch])
 
-  const clearRecentSearch = (searchTerm: string) => {
+  const clearRecentSearch = useCallback((searchTerm: string) => {
     setRecentSearches(recentSearches.filter(s => s !== searchTerm))
-  }
+  }, [recentSearches])
 
-  const clearAllRecentSearches = () => {
+  const clearAllRecentSearches = useCallback(() => {
     setRecentSearches([])
-  }
+  }, [])
 
   return (
     <div className="relative w-full max-w-2xl">
@@ -233,4 +233,6 @@ export function SearchBar({ onSearch, placeholder = "搜索作品、艺术家或
       </Popover>
     </div>
   )
-}
+})
+
+export { SearchBar }

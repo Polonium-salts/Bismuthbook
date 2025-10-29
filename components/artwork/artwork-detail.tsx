@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -34,6 +35,7 @@ interface ArtworkDetailProps {
     description?: string
     artist: {
       name: string
+      username?: string
       avatar: string
       bio?: string
       followers?: number
@@ -54,6 +56,9 @@ interface ArtworkDetailProps {
 }
 
 export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProps) {
+  const [imageLoading, setImageLoading] = useState(true)
+  const [imageError, setImageError] = useState(false)
+
   const handleLike = () => {
     if (onLike) {
       onLike()
@@ -89,17 +94,36 @@ export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProp
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* 图片区域 */}
         <div className="lg:col-span-2">
-          <div className="relative aspect-[4/5] sm:aspect-[3/4] lg:aspect-[4/5] w-full overflow-hidden rounded-lg bg-muted">
-            {artwork.imageUrl ? (
-              <Image
-                src={artwork.imageUrl}
-                alt={artwork.title}
-                fill
-                className="object-cover"
-                priority
-              />
+          <div className="relative w-full overflow-hidden rounded-lg bg-muted shadow-lg">
+            {artwork.imageUrl && !imageError ? (
+              <>
+                {imageLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-muted">
+                    <div className="text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
+                      <p className="text-sm text-muted-foreground">加载中...</p>
+                    </div>
+                  </div>
+                )}
+                <Image
+                  src={artwork.imageUrl}
+                  alt={artwork.title}
+                  width={0}
+                  height={0}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 66vw, 50vw"
+                  className={`w-full h-auto max-h-[80vh] object-contain transition-opacity duration-300 ${
+                    imageLoading ? 'opacity-0' : 'opacity-100'
+                  }`}
+                  priority
+                  onLoad={() => setImageLoading(false)}
+                  onError={() => {
+                    setImageLoading(false)
+                    setImageError(true)
+                  }}
+                />
+              </>
             ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
+              <div className="flex items-center justify-center h-64 text-muted-foreground">
                 <div className="text-center">
                   <div className="text-4xl mb-2">🖼️</div>
                   <p>图片加载失败</p>
@@ -181,12 +205,27 @@ export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProp
           {/* 艺术家信息 */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Avatar className="h-12 w-12">
-                <AvatarImage src={artwork.artist.avatar || undefined} />
-                <AvatarFallback>{artwork.artist.name?.[0] || 'U'}</AvatarFallback>
-              </Avatar>
+              {artwork.artist.username ? (
+                <Link href={`/user/${artwork.artist.username}`}>
+                  <Avatar className="h-12 w-12 cursor-pointer hover:opacity-80 transition-opacity">
+                    <AvatarImage src={artwork.artist.avatar || undefined} />
+                    <AvatarFallback>{artwork.artist.name?.[0] || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Link>
+              ) : (
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={artwork.artist.avatar || undefined} />
+                  <AvatarFallback>{artwork.artist.name?.[0] || 'U'}</AvatarFallback>
+                </Avatar>
+              )}
               <div className="flex-1">
-                <h3 className="font-semibold">{artwork.artist.name}</h3>
+                {artwork.artist.username ? (
+                  <Link href={`/user/${artwork.artist.username}`}>
+                    <h3 className="font-semibold hover:text-primary transition-colors cursor-pointer">{artwork.artist.name}</h3>
+                  </Link>
+                ) : (
+                  <h3 className="font-semibold">{artwork.artist.name}</h3>
+                )}
                 {artwork.artist.followers && (
                   <p className="text-sm text-muted-foreground">
                     {artwork.artist.followers.toLocaleString()} 关注者

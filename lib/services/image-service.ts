@@ -6,6 +6,7 @@ export interface UploadImageData {
   description?: string
   tags?: string[]
   category?: string
+  isPublished?: boolean
 }
 
 export interface ImageFilters {
@@ -38,7 +39,9 @@ class ImageService {
         like_count: 0,
         view_count: 0,
         comment_count: 0,
-        is_featured: false
+        is_featured: false,
+        is_published: data.isPublished || false,
+        published_at: data.isPublished ? new Date().toISOString() : null
       }
 
       const { data: image, error } = await supabase
@@ -65,21 +68,103 @@ class ImageService {
     }
   }
 
-  // Get images with filters and pagination
+  // Cache for frequently accessed data
+  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+
+  private getCacheKey(prefix: string, params: any): string {
+    return `${prefix}:${JSON.stringify(params)}`
+  }
+
+  private getFromCache<T>(key: string): T | null {
+    const cached = this.cache.get(key)
+    if (cached && Date.now() - cached.timestamp < cached.ttl) {
+      return cached.data as T
+    }
+    this.cache.delete(key)
+    return null
+  }
+
+  private setCache(key: string, data: any, ttl: number = this.CACHE_TTL): void {
+    this.cache.set(key, { data, timestamp: Date.now(), ttl })
+  }
+
+  // Test database connection and table structure
+  async testConnection(): Promise<{ success: boolean; error?: string; tableInfo?: any }> {
+    try {
+      // Test basic connection
+      const { data, error } = await supabase
+        .from('images')
+        .select('count(*)')
+        .limit(1)
+
+      if (error) {
+        return { success: false, error: error.message }
+      }
+
+      // Get table structure info
+      const { data: tableInfo, error: tableError } = await supabase
+        .from('images')
+        .select('id, title, image_url, user_id, created_at')
+        .limit(1)
+
+      return { 
+        success: true, 
+        tableInfo: {
+          hasData: tableInfo && tableInfo.length > 0,
+          sampleRecord: tableInfo?.[0] || null
+        }
+      }
+    } catch (error) {
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown connection error' 
+      }
+    }
+  }
+
+  // Get images with filters and pagination (optimized)
   async getImages(filters: ImageFilters = {}, userId?: string): Promise<ImageWithUserAndStats[]> {
+    const cacheKey = this.getCacheKey('images', { filters, userId })
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
+    if (cached) return cached
+
     const maxRetries = 3
     let lastError: any
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        // Optimized query - only select necessary fields
         let query = supabase
           .from('images')
           .select(`
-            *,
-            user_profiles (*),
-            likes!left (user_id),
-            favorites!left (user_id)
+            id,
+            title,
+            description,
+            image_url,
+            user_id,
+            tags,
+            category,
+            like_count,
+            view_count,
+            comment_count,
+            is_featured,
+            created_at,
+            user_profiles!inner (
+              id,
+              username,
+              avatar_url,
+              full_name
+            )
           `)
+
+        // 临时移除 is_published 过滤，因为字段不存在
+        // TODO: 添加 is_published 字段到数据库后恢复此过滤
+        // if (!userId) {
+        //   query = query.eq('is_published', true)
+        // } else {
+        //   query = query.or(`is_published.eq.true,user_id.eq.${userId}`)
+        // }
 
         // Apply filters
         if (filters.category) {
@@ -90,42 +175,81 @@ class ImageService {
           query = query.overlaps('tags', filters.tags)
         }
 
-        // Apply sorting
+        // Apply sorting with index hints
         const sortBy = filters.sortBy || 'created_at'
         const sortOrder = filters.sortOrder || 'desc'
         query = query.order(sortBy, { ascending: sortOrder === 'asc' })
 
         // Apply pagination
-        if (filters.limit) {
-          query = query.limit(filters.limit)
-        }
-
-        if (filters.offset) {
-          query = query.range(filters.offset, filters.offset + (filters.limit || 10) - 1)
-        }
+        const limit = filters.limit || 20
+        const offset = filters.offset || 0
+        query = query.range(offset, offset + limit - 1)
 
         const { data, error } = await query
 
         if (error) throw error
 
-        // Process data to include user interaction status and convert image URLs
+        // Get user interactions in a separate optimized query if userId is provided
+        let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
+        if (userId && data && data.length > 0) {
+          const imageIds = data.map(img => img.id)
+          
+          const [likesResult, favoritesResult] = await Promise.all([
+            supabase
+              .from('likes')
+              .select('image_id')
+              .eq('user_id', userId)
+              .in('image_id', imageIds),
+            supabase
+              .from('favorites')
+              .select('image_id')
+              .eq('user_id', userId)
+              .in('image_id', imageIds)
+          ])
+
+          userInteractions.likes = likesResult.data?.map(like => like.image_id) || []
+          userInteractions.favorites = favoritesResult.data?.map(fav => fav.image_id) || []
+        }
+
+        // Process data with optimized URL conversion and interaction status
         const processedData = data?.map(image => ({
           ...image,
-          image_url: this.getImageUrl(image.image_url), // Convert storage path to public URL
-          is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
-          is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
-          likes: undefined, // Remove the raw likes data
-          favorites: undefined // Remove the raw favorites data
+          image_url: this.getImageUrl(image.image_url),
+          is_liked: userInteractions.likes.includes(image.id),
+          is_favorited: userInteractions.favorites.includes(image.id)
         })) || []
+
+        // Cache the result
+        this.setCache(cacheKey, processedData)
 
         return processedData as ImageWithUserAndStats[]
       } catch (error) {
         lastError = error
-        console.error(`Error fetching images (attempt ${attempt}/${maxRetries}):`, error)
+        
+        // Enhanced error logging with more details
+        const errorDetails = {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          name: error instanceof Error ? error.name : 'UnknownError',
+          stack: error instanceof Error ? error.stack : undefined,
+          supabaseError: error && typeof error === 'object' && 'code' in error ? {
+            code: (error as any).code,
+            details: (error as any).details,
+            hint: (error as any).hint,
+            message: (error as any).message
+          } : undefined,
+          filters,
+          userId,
+          attempt,
+          timestamp: new Date().toISOString()
+        }
+        
+        console.error(`Error fetching images (attempt ${attempt}/${maxRetries}):`, errorDetails)
         
         if (attempt < maxRetries) {
           // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 1000))
+          const delay = Math.pow(2, attempt) * 1000
+          console.log(`Retrying in ${delay}ms...`)
+          await new Promise(resolve => setTimeout(resolve, delay))
         }
       }
     }
@@ -133,22 +257,39 @@ class ImageService {
     throw lastError
   }
 
-  // Get popular images (trending)
+  // Get popular images (trending) - optimized with caching
   async getPopularImages(limit = 20, timeframe: 'day' | 'week' | 'month' | 'all' = 'week') {
+    const cacheKey = this.getCacheKey('popular', { limit, timeframe })
+    const cached = this.getFromCache<any[]>(cacheKey)
+    if (cached) return cached
+
     try {
+      // Calculate popularity score for better ranking
       let query = supabase
         .from('images')
         .select(`
-          *,
-          user_profiles (
+          id,
+          title,
+          description,
+          image_url,
+          user_id,
+          tags,
+          category,
+          like_count,
+          view_count,
+          comment_count,
+          is_featured,
+          created_at,
+          user_profiles!inner (
             id,
             username,
             avatar_url,
             full_name
           )
         `)
+        .eq('is_published', true)
 
-      // Filter by timeframe
+      // Filter by timeframe with optimized date filtering
       if (timeframe !== 'all') {
         const now = new Date()
         let startDate: Date
@@ -173,15 +314,25 @@ class ImageService {
       const { data, error } = await query
         .order('like_count', { ascending: false })
         .order('view_count', { ascending: false })
+        .order('comment_count', { ascending: false })
         .limit(limit)
 
       if (error) throw error
 
-      // Convert storage paths to public URLs
-      const processedData = data?.map(image => ({
-        ...image,
-        image_url: this.getImageUrl(image.image_url)
-      })) || []
+      // Convert storage paths to public URLs and calculate popularity score
+      const processedData = data?.map(image => {
+        const ageInDays = (Date.now() - new Date(image.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        const popularityScore = (image.like_count * 3 + image.view_count * 0.1 + image.comment_count * 2) / Math.max(1, ageInDays * 0.1)
+        
+        return {
+          ...image,
+          image_url: this.getImageUrl(image.image_url),
+          popularity_score: popularityScore
+        }
+      }).sort((a, b) => b.popularity_score - a.popularity_score) || []
+
+      // Cache with shorter TTL for popular content (2 minutes)
+      this.setCache(cacheKey, processedData, 2 * 60 * 1000)
 
       return processedData
     } catch (error) {
@@ -190,20 +341,36 @@ class ImageService {
     }
   }
 
-  // Get recent images
+  // Get recent images - optimized with caching
   async getRecentImages(limit = 20) {
+    const cacheKey = this.getCacheKey('recent', { limit })
+    const cached = this.getFromCache<any[]>(cacheKey)
+    if (cached) return cached
+
     try {
       const { data, error } = await supabase
         .from('images')
         .select(`
-          *,
-          user_profiles (
+          id,
+          title,
+          description,
+          image_url,
+          user_id,
+          tags,
+          category,
+          like_count,
+          view_count,
+          comment_count,
+          is_featured,
+          created_at,
+          user_profiles!inner (
             id,
             username,
             avatar_url,
             full_name
           )
         `)
+        .eq('is_published', true)
         .order('created_at', { ascending: false })
         .limit(limit)
 
@@ -214,6 +381,9 @@ class ImageService {
         ...image,
         image_url: this.getImageUrl(image.image_url)
       })) || []
+
+      // Cache with shorter TTL for recent content (1 minute)
+      this.setCache(cacheKey, processedData, 60 * 1000)
 
       return processedData
     } catch (error) {
@@ -237,6 +407,7 @@ class ImageService {
           )
         `)
         .eq('category', category)
+        .eq('is_published', true)
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
@@ -279,6 +450,7 @@ class ImageService {
           )
         `)
         .neq('id', imageId) // Exclude current image
+        .eq('is_published', true) // Only show published images
 
       // Find images with same category or overlapping tags
       if (currentImage.category) {
@@ -459,6 +631,58 @@ class ImageService {
       return data as ImageWithUser
     } catch (error) {
       console.error('Error updating image:', error)
+      throw error
+    }
+  }
+
+  // Publish image
+  async publishImage(id: string, userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('images')
+        .update({
+          is_published: true,
+          published_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .eq('user_id', userId) // Ensure user owns the image
+        .select(`
+          *,
+          user_profiles (*)
+        `)
+        .single()
+
+      if (error) throw error
+
+      return data as ImageWithUser
+    } catch (error) {
+      console.error('Error publishing image:', error)
+      throw error
+    }
+  }
+
+  // Unpublish image
+  async unpublishImage(id: string, userId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('images')
+        .update({
+          is_published: false,
+          published_at: null
+        })
+        .eq('id', id)
+        .eq('user_id', userId) // Ensure user owns the image
+        .select(`
+          *,
+          user_profiles (*)
+        `)
+        .single()
+
+      if (error) throw error
+
+      return data as ImageWithUser
+    } catch (error) {
+      console.error('Error unpublishing image:', error)
       throw error
     }
   }

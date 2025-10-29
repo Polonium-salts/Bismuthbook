@@ -1,6 +1,24 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { imageService } from '../services/image-service'
 import { ImageWithUser } from '../types/database'
+
+// Debounce utility
+function useDebounce<T extends (...args: any[]) => any>(
+  callback: T,
+  delay: number
+): T {
+  const timeoutRef = useRef<NodeJS.Timeout>()
+  
+  return useCallback((...args: Parameters<T>) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current)
+    }
+    
+    timeoutRef.current = setTimeout(() => {
+      callback(...args)
+    }, delay)
+  }, [callback, delay]) as T
+}
 
 interface UseImagesOptions {
   limit?: number
@@ -36,11 +54,25 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
     ...initialOptions
   })
 
-  const loadImages = useCallback(async (newOptions?: UseImagesOptions, append = false) => {
-    if (isLoading) return
+  // Track loading state to prevent duplicate requests
+  const loadingRef = useRef(false)
+  const abortControllerRef = useRef<AbortController>()
 
+  const loadImagesInternal = useCallback(async (newOptions?: UseImagesOptions, append = false) => {
+    // Prevent duplicate requests
+    if (loadingRef.current) return
+
+    // Cancel previous request if still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    loadingRef.current = true
     setIsLoading(true)
     setError(null)
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController()
 
     try {
       const currentOptions = newOptions ? { ...options, ...newOptions } : options
@@ -51,8 +83,18 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
         offset: currentOffset
       }, currentOptions.userId)
 
+      // Check if request was aborted
+      if (abortControllerRef.current?.signal.aborted) {
+        return
+      }
+
       if (append) {
-        setImages(prev => [...prev, ...data])
+        setImages(prev => {
+          // Prevent duplicate images
+          const existingIds = new Set(prev.map(img => img.id))
+          const newImages = data.filter(img => !existingIds.has(img.id))
+          return [...prev, ...newImages]
+        })
       } else {
         setImages(data)
         setOffset(0)
@@ -65,17 +107,36 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
         setOptions(currentOptions)
       }
     } catch (err) {
-      console.error('Error loading images:', err)
+      // Don't set error if request was aborted
+      if (err instanceof Error && err.name === 'AbortError') {
+        return
+      }
+      
+      // Enhanced error logging
+      const errorDetails = {
+        message: err instanceof Error ? err.message : 'Unknown error',
+        name: err instanceof Error ? err.name : 'UnknownError',
+        stack: err instanceof Error ? err.stack : undefined,
+        options: newOptions ? { ...options, ...newOptions } : options,
+        append,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('Error loading images:', errorDetails)
       setError(err instanceof Error ? err.message : '加载图片失败')
     } finally {
+      loadingRef.current = false
       setIsLoading(false)
     }
-  }, [options, offset, isLoading])
+  }, [options, offset])
+
+  // Debounced version for search/filter changes
+  const loadImages = useDebounce(loadImagesInternal, 300)
 
   const loadMore = useCallback(async () => {
-    if (!hasMore || isLoading) return
-    await loadImages(undefined, true)
-  }, [hasMore, isLoading, loadImages])
+    if (!hasMore || loadingRef.current) return
+    await loadImagesInternal(undefined, true)
+  }, [hasMore, loadImagesInternal])
 
   const refresh = useCallback(async () => {
     setOffset(0)

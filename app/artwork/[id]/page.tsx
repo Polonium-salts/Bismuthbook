@@ -2,8 +2,14 @@
 
 import { useState, useEffect, use } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { ArtworkDetail } from "@/components/artwork/artwork-detail"
-import { CommentSection } from "@/components/comments/comment-section"
+const ArtworkDetail = dynamic(() => import("@/components/artwork/artwork-detail").then(mod => ({ default: mod.ArtworkDetail })), {
+  loading: () => <div className="flex items-center justify-center p-8">加载作品详情中...</div>
+})
+import dynamic from "next/dynamic"
+
+const CommentSection = dynamic(() => import("@/components/comments/comment-section").then(mod => ({ default: mod.CommentSection })), {
+  loading: () => <div className="flex items-center justify-center p-8">加载评论中...</div>
+})
 import { Separator } from "@/components/ui/separator"
 import { imageService } from "@/lib/services/image-service"
 import { useAuth } from "@/lib/providers/auth-provider"
@@ -119,6 +125,7 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
               imageUrl: getImageUrl(artwork.image_url),
               artist: {
                 name: artwork.user_profiles.username || artwork.user_profiles.full_name || 'Unknown Artist',
+                username: artwork.user_profiles.username,
                 avatar: artwork.user_profiles.avatar_url || '',
                 bio: artwork.user_profiles.bio || undefined,
                 followers: undefined

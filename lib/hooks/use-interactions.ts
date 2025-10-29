@@ -115,7 +115,15 @@ export function useComments(imageId: string) {
       const data = await interactionService.getImageComments(imageId)
       setComments(data)
     } catch (error) {
-      console.error('Error loading comments:', error)
+      const errorDetails = {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'UnknownError',
+        stack: error instanceof Error ? error.stack : undefined,
+        imageId,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('Error loading comments:', errorDetails)
       toast.error('加载评论失败')
     } finally {
       setIsLoading(false)

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, memo, useCallback } from "react"
+import Image from "next/image"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -18,14 +19,18 @@ import { ImageWithUserAndStats } from "@/lib/types/database"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { useInteractions } from "@/lib/hooks/use-interactions"
 import { toast } from "sonner"
-import { ImageDetail } from "./image-detail"
+import dynamic from "next/dynamic"
+
+const ImageDetail = dynamic(() => import("./image-detail").then(mod => ({ default: mod.ImageDetail })), {
+  loading: () => <div className="flex items-center justify-center p-8">加载中...</div>
+})
 
 interface ImageCardProps {
   image: ImageWithUserAndStats
   onImageClick?: (image: ImageWithUserAndStats) => void
 }
 
-export function ImageCard({ image, onImageClick }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({ image, onImageClick }: ImageCardProps) {
   const { user } = useAuth()
   const { viewCount, commentCount, likeCount, isLiked, isFavorited, toggleLike, toggleFavorite, loadStats } = useInteractions(image.id)
   
@@ -37,7 +42,7 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
     loadStats()
   }, [loadStats])
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -52,9 +57,9 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
     } catch (error) {
       toast.error("操作失败，请重试")
     }
-  }
+  }, [user, toggleLike, isLiked])
 
-  const handleFavorite = async (e: React.MouseEvent) => {
+  const handleFavorite = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -69,9 +74,9 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
     } catch (error) {
       toast.error("操作失败，请重试")
     }
-  }
+  }, [user, toggleFavorite, isFavorited])
 
-  const handleShare = async (e: React.MouseEvent) => {
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation()
     
     try {
@@ -81,9 +86,9 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
     } catch (error) {
       toast.error('复制失败')
     }
-  }
+  }, [image.id])
 
-  const handleDownload = (e: React.MouseEvent) => {
+  const handleDownload = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     
     const link = document.createElement('a')
@@ -93,22 +98,22 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
     link.click()
     document.body.removeChild(link)
     toast.success('开始下载')
-  }
+  }, [image.image_url, image.title])
 
-  const handleImageClick = () => {
+  const handleImageClick = useCallback(() => {
     if (onImageClick) {
       onImageClick(image)
     } else {
       setShowDetail(true)
     }
-  }
+  }, [onImageClick, image])
 
-  const formatCount = (count: number) => {
+  const formatCount = useCallback((count: number) => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`
     }
     return count.toString()
-  }
+  }, [])
 
   return (
     <>
@@ -121,11 +126,15 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
         <CardContent className="p-0">
           {/* 图片容器 */}
           <div className="relative aspect-[3/4] overflow-hidden">
-            <img
+            <Image
               src={image.image_url}
               alt={image.title || "图片"}
-              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+              priority={false}
+              placeholder="blur"
+              blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
             />
             
             {/* 悬浮操作按钮 */}
@@ -243,4 +252,6 @@ export function ImageCard({ image, onImageClick }: ImageCardProps) {
       />
     </>
   )
-}
+})
+
+export { ImageCard }

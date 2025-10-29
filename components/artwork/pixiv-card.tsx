@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, memo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -27,7 +27,7 @@ interface PixivCardProps {
   className?: string
 }
 
-export function PixivCard({ 
+const PixivCard = memo(function PixivCard({ 
   artwork, 
   columns, 
   onHeightCalculated, 
@@ -58,7 +58,7 @@ export function PixivCard({
     }
   }, [imageLoaded, onHeightCalculated])
 
-  const handleLike = async (e: React.MouseEvent) => {
+  const handleLike = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -72,9 +72,9 @@ export function PixivCard({
     } catch (error) {
       toast.error("操作失败，请重试")
     }
-  }
+  }, [user, toggleLike])
 
-  const handleFavorite = async (e: React.MouseEvent) => {
+  const handleFavorite = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
@@ -88,18 +88,18 @@ export function PixivCard({
     } catch (error) {
       toast.error("操作失败，请重试")
     }
-  }
+  }, [user, toggleFavorite])
 
-  const handleImageClick = () => {
+  const handleImageClick = useCallback(() => {
     router.push(`/artwork/${artwork.id}`)
-  }
+  }, [router, artwork.id])
 
-  const formatCount = (count: number) => {
+  const formatCount = useCallback((count: number) => {
     if (count >= 1000) {
       return `${(count / 1000).toFixed(1)}k`
     }
     return count.toString()
-  }
+  }, [])
 
   return (
     <>
@@ -227,4 +227,6 @@ export function PixivCard({
       </div>
     </>
   )
-}
+})
+
+export { PixivCard }

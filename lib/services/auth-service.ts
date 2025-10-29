@@ -1,6 +1,6 @@
-import { supabase } from '../supabase'
-import { UserProfile, UserProfileInsert, UserProfileUpdate } from '../types/database'
-import { User, AuthError } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
+import type { User } from '@supabase/supabase-js'
+import type { UserProfile, UserProfileInsert, UserProfileUpdate } from '@/lib/types/database'
 
 export interface SignUpData {
   email: string
@@ -23,6 +23,44 @@ export interface UpdateProfileData {
 }
 
 class AuthService {
+  // Cache configuration
+  private static readonly CACHE_DURATION = 2 * 60 * 1000 // 2 minutes
+  private userProfileCache = new Map<string, { data: UserProfile; timestamp: number }>()
+  private usernameCache = new Map<string, { data: UserProfile | null; timestamp: number }>()
+
+  // Cache helper methods
+  private getCacheKey(key: string): string {
+    return key.toLowerCase()
+  }
+
+  private isExpired(timestamp: number): boolean {
+    return Date.now() - timestamp > AuthService.CACHE_DURATION
+  }
+
+  private setCache<T>(cache: Map<string, { data: T; timestamp: number }>, key: string, data: T): void {
+    cache.set(this.getCacheKey(key), { data, timestamp: Date.now() })
+  }
+
+  private getFromCache<T>(cache: Map<string, { data: T; timestamp: number }>, key: string): T | null {
+    const cached = cache.get(this.getCacheKey(key))
+    if (cached && !this.isExpired(cached.timestamp)) {
+      return cached.data
+    }
+    if (cached) {
+      cache.delete(this.getCacheKey(key))
+    }
+    return null
+  }
+
+  private clearUserCache(userId: string): void {
+    this.userProfileCache.delete(this.getCacheKey(userId))
+    // Clear username cache entries that might reference this user
+    for (const [key, value] of this.usernameCache.entries()) {
+      if (value.data?.id === userId) {
+        this.usernameCache.delete(key)
+      }
+    }
+  }
   // Sign up new user
   async signUp(data: SignUpData) {
     try {
@@ -126,6 +164,12 @@ class AuthService {
   // Get user profile
   async getUserProfile(userId: string): Promise<UserProfile | null> {
     try {
+      // Check cache first
+      const cached = this.getFromCache(this.userProfileCache, userId)
+      if (cached) {
+        return cached
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -133,6 +177,11 @@ class AuthService {
         .maybeSingle()
 
       if (error) throw error
+
+      // Cache the result
+      if (data) {
+        this.setCache(this.userProfileCache, userId, data)
+      }
 
       return data
     } catch (error) {
@@ -171,6 +220,12 @@ class AuthService {
         .single()
 
       if (error) throw error
+
+      // Clear cache and update with new data
+      this.clearUserCache(userId)
+      if (data) {
+        this.setCache(this.userProfileCache, userId, data)
+      }
 
       return data
     } catch (error) {
@@ -259,6 +314,12 @@ class AuthService {
   // Get user by username
   async getUserByUsername(username: string): Promise<UserProfile | null> {
     try {
+      // Check cache first
+      const cached = this.getFromCache(this.usernameCache, username)
+      if (cached !== null) {
+        return cached
+      }
+
       const { data, error } = await supabase
         .from('user_profiles')
         .select('*')
@@ -266,6 +327,14 @@ class AuthService {
         .maybeSingle()
 
       if (error) throw error
+
+      // Cache the result (including null results)
+      this.setCache(this.usernameCache, username, data)
+      
+      // Also cache in user profile cache if data exists
+      if (data) {
+        this.setCache(this.userProfileCache, data.id, data)
+      }
 
       return data
     } catch (error) {
@@ -302,6 +371,12 @@ class AuthService {
       if (error) {
         console.error('Error creating missing user profile:', error)
         return null
+      }
+
+      // Cache the newly created profile
+      if (data) {
+        this.setCache(this.userProfileCache, data.id, data)
+        this.setCache(this.usernameCache, data.username, data)
       }
 
       return data

@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { PixivGrid } from "@/components/artwork/pixiv-grid"
+import dynamic from "next/dynamic"
+
+const PixivGrid = dynamic(() => import("@/components/artwork/pixiv-grid").then(mod => ({ default: mod.PixivGrid })), {
+  loading: () => <div className="flex items-center justify-center p-8">加载作品网格中...</div>
+})
 import { SearchBar } from "@/components/search/search-bar"
 import { useImages, useCategories } from "@/lib/hooks/use-images"
 import { useAuth } from "@/lib/providers/auth-provider"

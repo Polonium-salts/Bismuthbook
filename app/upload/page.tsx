@@ -56,11 +56,6 @@ export default function UploadPage() {
         // 自动填充标题（去掉扩展名）
         const fileName = file.name.replace(/\.[^/.]+$/, "")
         setFormData(prev => ({ ...prev, title: fileName }))
-        
-        // 选中图片后自动上传
-        setTimeout(() => {
-          handleAutoUpload(file, fileName)
-        }, 500) // 稍微延迟以确保预览加载完成
       } else {
         toast.error("请选择图片文件")
       }
@@ -86,11 +81,6 @@ export default function UploadPage() {
       
       const fileName = file.name.replace(/\.[^/.]+$/, "")
       setFormData(prev => ({ ...prev, title: fileName }))
-      
-      // 拖拽上传后也自动上传
-      setTimeout(() => {
-        handleAutoUpload(file, fileName)
-      }, 500)
     }
   }
 
@@ -120,63 +110,10 @@ export default function UploadPage() {
       .filter(tag => tag.length > 0)
   }
 
-  // 自动上传图片（选中后立即上传）
-  const handleAutoUpload = async (file: File, fileName: string) => {
-    if (!user) {
-      toast.error("请先登录")
-      return
-    }
 
-    setUploading(true)
-    setUploadProgress(0)
 
-    try {
-      // 显示上传提示
-      toast.info("正在自动上传作品...")
-
-      // 模拟上传进度
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return prev
-          }
-          return prev + Math.random() * 10
-        })
-      }, 200)
-
-      const result = await imageService.uploadImageWithData(
-        file,
-        {
-          title: fileName,
-          description: undefined,
-          tags: [],
-          category: undefined
-        },
-        user.id
-      )
-
-      clearInterval(progressInterval)
-      setUploadProgress(100)
-      setUploadSuccess(true)
-      
-      toast.success("作品发布成功！")
-      
-      // 1秒后跳转到首页
-      setTimeout(() => {
-        router.push('/')
-      }, 1000)
-
-    } catch (error) {
-      console.error('Auto upload error:', error)
-      toast.error("自动上传失败，请重试")
-      setUploadProgress(0)
-      setUploading(false)
-    }
-  }
-
-  // 手动上传图片（保留原功能，用于编辑后重新上传）
-  const handleManualUpload = async () => {
+  // 上传图片
+  const handleUpload = async () => {
     if (!selectedFile || !user) {
       toast.error("请选择文件并登录")
       return
@@ -208,7 +145,8 @@ export default function UploadPage() {
           title: formData.title.trim(),
           description: formData.description.trim() || undefined,
           tags: getTagsArray(),
-          category: formData.category || undefined
+          category: formData.category || undefined,
+          isPublished: false
         },
         user.id
       )
@@ -217,7 +155,7 @@ export default function UploadPage() {
       setUploadProgress(100)
       setUploadSuccess(true)
       
-      toast.success("作品上传成功！")
+      toast.success("作品已保存为草稿！")
       
       // 2秒后跳转到首页
       setTimeout(() => {
@@ -274,7 +212,7 @@ export default function UploadPage() {
             </h1>
           </div>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            选择图片即可自动发布，就像抖音一样简单
+            上传您的作品，填写详细信息后发布
           </p>
         </div>
 
@@ -284,10 +222,10 @@ export default function UploadPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Upload className="w-5 h-5" />
-                <span>选择图片自动发布</span>
+                <span>选择图片</span>
               </CardTitle>
               <CardDescription>
-                支持 JPG、PNG、GIF 格式，最大 10MB，选中即发布
+                支持 JPG、PNG、GIF 格式，最大 10MB
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -299,10 +237,10 @@ export default function UploadPage() {
                   onClick={() => document.getElementById('file-input')?.click()}
                 >
                   <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-lg font-medium mb-2">拖拽图片到这里自动发布</p>
-                  <p className="text-sm text-muted-foreground mb-4">或者点击选择文件，选中即发布</p>
+                  <p className="text-lg font-medium mb-2">拖拽图片到这里</p>
+                  <p className="text-sm text-muted-foreground mb-4">或者点击选择文件</p>
                   <Button variant="outline">
-                    选择图片发布
+                    选择图片
                   </Button>
                   <input
                     id="file-input"
@@ -366,10 +304,10 @@ export default function UploadPage() {
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
                 <Palette className="w-5 h-5" />
-                <span>作品信息（可选）</span>
+                <span>作品信息</span>
               </CardTitle>
               <CardDescription>
-                {uploadSuccess ? "作品已发布成功！" : uploading ? "正在自动发布..." : "可以编辑作品信息后重新发布"}
+                {uploadSuccess ? "作品已发布成功！" : uploading ? "正在上传..." : "填写作品信息，然后点击发布"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -453,19 +391,19 @@ export default function UploadPage() {
                        返回首页
                      </Button>
                     <Button
-                      onClick={handleManualUpload}
+                      onClick={handleUpload}
                       disabled={!selectedFile || uploading}
                       variant="outline"
                       className="flex-1"
                       size="lg"
                     >
                       <Upload className="w-4 h-4 mr-2" />
-                      重新发布
+                      重新上传
                     </Button>
                   </>
                 ) : (
                   <Button
-                    onClick={handleManualUpload}
+                    onClick={handleUpload}
                     disabled={!selectedFile || uploading}
                     className="w-full"
                     size="lg"
@@ -473,12 +411,12 @@ export default function UploadPage() {
                     {uploading ? (
                        <>
                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                         发布中... {uploadProgress}%
+                         上传中... {uploadProgress}%
                        </>
                      ) : (
                        <>
                          <Upload className="w-4 h-4 mr-2" />
-                         手动发布
+                         发布作品
                        </>
                      )}
                   </Button>

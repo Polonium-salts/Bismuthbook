@@ -1,7 +1,92 @@
 import { supabase } from '../supabase'
 import { LikeInsert, FavoriteInsert, CommentInsert, CommentUpdate, CommentWithUser } from '../types/database'
 
+// 缓存配置
+const CACHE_DURATION = 2 * 60 * 1000 // 2分钟
+const commentsCache = new Map<string, { data: CommentWithUser[], timestamp: number }>()
+const interactionStatsCache = new Map<string, { data: any, timestamp: number }>()
+
 class InteractionService {
+  // 测试数据库连接
+  async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
+    try {
+      // 测试基本连接
+      const { data, error } = await supabase
+        .from('comments')
+        .select('id')
+        .limit(1)
+
+      if (error) {
+        return {
+          success: false,
+          message: 'Database connection failed',
+          details: {
+            error: error.message,
+            code: error.code,
+            hint: error.hint,
+            details: error.details
+          }
+        }
+      }
+
+      return {
+        success: true,
+        message: 'Database connection successful',
+        details: {
+          tableAccess: 'comments table accessible',
+          recordCount: data?.length || 0
+        }
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Connection test failed',
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined
+        }
+      }
+    }
+  }
+
+  // 私有方法：缓存相关
+  private getCacheKey(prefix: string, ...params: string[]): string {
+    return `${prefix}:${params.join(':')}`
+  }
+
+  private isExpired(timestamp: number): boolean {
+    return Date.now() - timestamp > CACHE_DURATION
+  }
+
+  private setCache<T>(cache: Map<string, { data: T, timestamp: number }>, key: string, data: T): void {
+    cache.set(key, { data, timestamp: Date.now() })
+  }
+
+  private getFromCache<T>(cache: Map<string, { data: T, timestamp: number }>, key: string): T | null {
+    const cached = cache.get(key)
+    if (cached && !this.isExpired(cached.timestamp)) {
+      return cached.data
+    }
+    if (cached) {
+      cache.delete(key)
+    }
+    return null
+  }
+
+  private clearRelatedCache(imageId: string): void {
+    // 清理相关的评论缓存
+    const keysToDelete: string[] = []
+    commentsCache.forEach((_, key) => {
+      if (key.includes(imageId)) {
+        keysToDelete.push(key)
+      }
+    })
+    keysToDelete.forEach(key => commentsCache.delete(key))
+
+    // 清理交互统计缓存
+    const statsKey = this.getCacheKey('interaction_stats', imageId)
+    interactionStatsCache.delete(statsKey)
+  }
   // Toggle like for an image
   async toggleLike(imageId: string, userId: string): Promise<{ isLiked: boolean; likeCount: number }> {
     try {
@@ -190,21 +275,29 @@ class InteractionService {
         .insert(commentData)
         .select(`
           *,
-          user_profiles (*)
+          user_profiles (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
         `)
         .single()
 
       if (error) throw error
 
-      // Increment comment count
-      const { error: incrementError } = await supabase
-        .from('images')
-        .update({ comment_count: supabase.sql`comment_count + 1` })
-        .eq('id', imageId)
+      // 使用数据库函数更新评论数，更高效
+      const { error: incrementError } = await supabase.rpc('increment_comment_count', {
+        image_id: imageId
+      })
 
       if (incrementError) {
         console.error('Error incrementing comment count:', incrementError)
       }
+
+      // 清理相关缓存
+      this.clearRelatedCache(imageId)
 
       return data as CommentWithUser
     } catch (error) {
@@ -216,11 +309,29 @@ class InteractionService {
   // Get comments for an image
   async getImageComments(imageId: string, limit = 20, offset = 0): Promise<CommentWithUser[]> {
     try {
+      // 检查缓存（仅对第一页进行缓存）
+      if (offset === 0) {
+        const cacheKey = this.getCacheKey('comments', imageId, limit.toString())
+        const cached = this.getFromCache(commentsCache, cacheKey)
+        if (cached) {
+          return cached
+        }
+      }
+
       const { data, error } = await supabase
         .from('comments')
         .select(`
-          *,
-          user_profiles (*)
+          id,
+          content,
+          created_at,
+          updated_at,
+          user_profiles (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
         `)
         .eq('image_id', imageId)
         .order('created_at', { ascending: false })
@@ -228,9 +339,33 @@ class InteractionService {
 
       if (error) throw error
 
-      return data as CommentWithUser[]
+      const comments = data as CommentWithUser[]
+
+      // 缓存第一页结果
+      if (offset === 0) {
+        const cacheKey = this.getCacheKey('comments', imageId, limit.toString())
+        this.setCache(commentsCache, cacheKey, comments)
+      }
+
+      return comments
     } catch (error) {
-      console.error('Error fetching comments:', error)
+      const errorDetails = {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        name: error instanceof Error ? error.name : 'UnknownError',
+        stack: error instanceof Error ? error.stack : undefined,
+        supabaseError: error && typeof error === 'object' ? {
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          message: (error as any).message
+        } : undefined,
+        imageId,
+        limit,
+        offset,
+        timestamp: new Date().toISOString()
+      }
+      
+      console.error('Error fetching comments:', errorDetails)
       throw error
     }
   }
@@ -238,6 +373,16 @@ class InteractionService {
   // Update comment
   async updateComment(commentId: string, userId: string, content: string): Promise<CommentWithUser> {
     try {
+      // 首先获取评论的 image_id 用于清理缓存
+      const { data: commentData, error: fetchError } = await supabase
+        .from('comments')
+        .select('image_id')
+        .eq('id', commentId)
+        .eq('user_id', userId)
+        .single()
+
+      if (fetchError) throw fetchError
+
       const updateData: CommentUpdate = {
         content,
         updated_at: new Date().toISOString()
@@ -249,12 +394,24 @@ class InteractionService {
         .eq('id', commentId)
         .eq('user_id', userId) // Ensure user owns the comment
         .select(`
-          *,
-          user_profiles (*)
+          id,
+          content,
+          created_at,
+          updated_at,
+          user_profiles (
+            id,
+            username,
+            display_name,
+            avatar_url,
+            is_verified
+          )
         `)
         .single()
 
       if (error) throw error
+
+      // 清理相关缓存
+      this.clearRelatedCache(commentData.image_id)
 
       return data as CommentWithUser
     } catch (error) {
@@ -274,15 +431,17 @@ class InteractionService {
 
       if (error) throw error
 
-      // Decrement comment count
-      const { error: decrementError } = await supabase
-        .from('images')
-        .update({ comment_count: supabase.sql`comment_count - 1` })
-        .eq('id', imageId)
+      // 使用数据库函数更新评论数，更高效
+      const { error: decrementError } = await supabase.rpc('decrement_comment_count', {
+        image_id: imageId
+      })
 
       if (decrementError) {
         console.error('Error decrementing comment count:', decrementError)
       }
+
+      // 清理相关缓存
+      this.clearRelatedCache(imageId)
     } catch (error) {
       console.error('Error deleting comment:', error)
       throw error
