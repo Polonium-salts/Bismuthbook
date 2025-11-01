@@ -130,7 +130,10 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
 
           {/* Content */}
           <div className="p-4 space-y-3 bg-white/90 backdrop-blur-sm">
-            <h3 className="font-semibold text-base line-clamp-2 leading-tight text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
+            <h3 
+              className="font-semibold text-base line-clamp-2 leading-tight text-gray-900 group-hover:text-blue-600 transition-colors duration-300"
+              title={artwork.title}
+            >
               {artwork.title}
             </h3>
             

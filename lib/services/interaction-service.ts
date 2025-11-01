@@ -90,17 +90,22 @@ class InteractionService {
   // Toggle like for an image
   async toggleLike(imageId: string, userId: string): Promise<{ isLiked: boolean; likeCount: number }> {
     try {
+      if (!imageId || !userId) {
+        throw new Error('Invalid arguments: imageId and userId are required')
+      }
       // Check if already liked
-      const { data: existingLike, error: checkError } = await supabase
+      const { data: existingLikes, error: checkError } = await supabase
         .from('likes')
         .select('id')
         .eq('user_id', userId)
         .eq('image_id', imageId)
-        .single()
+        .limit(1)
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError
       }
+
+      const existingLike = existingLikes?.[0]
 
       if (existingLike) {
         // Remove like
@@ -168,17 +173,22 @@ class InteractionService {
   // Toggle favorite for an image
   async toggleFavorite(imageId: string, userId: string): Promise<{ isFavorited: boolean }> {
     try {
+      if (!imageId || !userId) {
+        throw new Error('Invalid arguments: imageId and userId are required')
+      }
       // Check if already favorited
-      const { data: existingFavorite, error: checkError } = await supabase
+      const { data: existingFavorites, error: checkError } = await supabase
         .from('favorites')
         .select('id')
         .eq('user_id', userId)
         .eq('image_id', imageId)
-        .single()
+        .limit(1)
 
-      if (checkError && checkError.code !== 'PGRST116') {
+      if (checkError) {
         throw checkError
       }
+
+      const existingFavorite = existingFavorites?.[0]
 
       if (existingFavorite) {
         // Remove favorite
@@ -278,23 +288,15 @@ class InteractionService {
           user_profiles (
             id,
             username,
-            display_name,
-            avatar_url,
-            is_verified
+            full_name,
+            avatar_url
           )
         `)
         .single()
 
       if (error) throw error
 
-      // 使用数据库函数更新评论数，更高效
-      const { error: incrementError } = await supabase.rpc('increment_comment_count', {
-        image_id: imageId
-      })
-
-      if (incrementError) {
-        console.error('Error incrementing comment count:', incrementError)
-      }
+      // 注：评论数更新交由数据库触发器处理；不再额外调用 RPC
 
       // 清理相关缓存
       this.clearRelatedCache(imageId)
@@ -309,6 +311,9 @@ class InteractionService {
   // Get comments for an image
   async getImageComments(imageId: string, limit = 20, offset = 0): Promise<CommentWithUser[]> {
     try {
+      if (!imageId) {
+        return []
+      }
       // 检查缓存（仅对第一页进行缓存）
       if (offset === 0) {
         const cacheKey = this.getCacheKey('comments', imageId, limit.toString())
@@ -328,9 +333,8 @@ class InteractionService {
           user_profiles (
             id,
             username,
-            display_name,
-            avatar_url,
-            is_verified
+            full_name,
+            avatar_url
           )
         `)
         .eq('image_id', imageId)
@@ -401,9 +405,8 @@ class InteractionService {
           user_profiles (
             id,
             username,
-            display_name,
-            avatar_url,
-            is_verified
+            full_name,
+            avatar_url
           )
         `)
         .single()
@@ -431,14 +434,7 @@ class InteractionService {
 
       if (error) throw error
 
-      // 使用数据库函数更新评论数，更高效
-      const { error: decrementError } = await supabase.rpc('decrement_comment_count', {
-        image_id: imageId
-      })
-
-      if (decrementError) {
-        console.error('Error decrementing comment count:', decrementError)
-      }
+      // 注：评论数更新交由数据库触发器处理；不再额外调用 RPC
 
       // 清理相关缓存
       this.clearRelatedCache(imageId)
@@ -451,18 +447,19 @@ class InteractionService {
   // Check if user has liked an image
   async hasUserLikedImage(imageId: string, userId: string): Promise<boolean> {
     try {
+      if (!imageId || !userId) return false
       const { data, error } = await supabase
         .from('likes')
         .select('id')
         .eq('user_id', userId)
         .eq('image_id', imageId)
-        .single()
+        .limit(1)
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error
       }
 
-      return !!data
+      return Array.isArray(data) && data.length > 0
     } catch (error) {
       console.error('Error checking if user liked image:', error)
       return false
@@ -472,18 +469,19 @@ class InteractionService {
   // Check if user has favorited an image
   async hasUserFavoritedImage(imageId: string, userId: string): Promise<boolean> {
     try {
+      if (!imageId || !userId) return false
       const { data, error } = await supabase
         .from('favorites')
         .select('id')
         .eq('user_id', userId)
         .eq('image_id', imageId)
-        .single()
+        .limit(1)
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error
       }
 
-      return !!data
+      return Array.isArray(data) && data.length > 0
     } catch (error) {
       console.error('Error checking if user favorited image:', error)
       return false
@@ -493,6 +491,15 @@ class InteractionService {
   // Get interaction stats for an image
   async getImageStats(imageId: string, userId?: string) {
     try {
+      if (!imageId) {
+        return {
+          likeCount: 0,
+          viewCount: 0,
+          commentCount: 0,
+          isLiked: false,
+          isFavorited: false
+        }
+      }
       const { data: image, error: imageError } = await supabase
         .from('images')
         .select('like_count, view_count, comment_count')

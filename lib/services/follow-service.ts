@@ -69,18 +69,18 @@ class FollowService {
 
       // 如果缓存中没有或已过期，检查数据库
       if (cachedStatus === null) {
-        const { data: existingFollow, error: checkError } = await supabase
+        const { data: existingFollows, error: checkError } = await supabase
           .from('follows')
           .select('id')
           .eq('follower_id', followerId)
           .eq('following_id', followingId)
-          .single()
+          .limit(1)
 
-        if (checkError && checkError.code !== 'PGRST116') {
+        if (checkError) {
           throw checkError
         }
 
-        if (existingFollow) {
+        if (existingFollows && existingFollows.length > 0) {
           // 更新缓存
           this.setCache(this.followStatusCache, cacheKey, true)
           throw new Error('已经关注了该用户')
@@ -150,13 +150,13 @@ class FollowService {
         .select('id')
         .eq('follower_id', followerId)
         .eq('following_id', followingId)
-        .single()
+        .limit(1)
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         throw error
       }
 
-      const isFollowing = !!data
+      const isFollowing = !!(data && data.length > 0)
       
       // 更新缓存
       this.setCache(this.followStatusCache, cacheKey, isFollowing)
@@ -256,11 +256,59 @@ class FollowService {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1)
 
-      if (error) throw error
+      if (error) {
+        // 若联结选择失败，尝试回退到两步查询以提高健壮性
+        // 例如某些环境下约束名不匹配导致联结失败
+        const code = (error as any)?.code
+        const message = (error as any)?.message || 'Unknown error'
+        console.warn('Primary getFollowing join failed:', { code, message })
+
+        // 数据表不存在时给出更友好的提示
+        if (code === '42P01' || /relation .*follows.* does not exist/i.test(message)) {
+          throw new Error('数据库未初始化关注表(follows)。请先应用数据库迁移后再试。')
+        }
+
+        // 回退方案：先取 following_id，再批量查询 user_profiles 并按创建时间排序
+        const { data: idRows, error: idsError } = await supabase
+          .from('follows')
+          .select('following_id, created_at')
+          .eq('follower_id', userId)
+          .order('created_at', { ascending: false })
+          .range(offset, offset + limit - 1)
+
+        if (idsError) {
+          const fallbackCode = (idsError as any)?.code
+          const fallbackMsg = (idsError as any)?.message || 'Unknown error'
+          console.error('Fallback getFollowing ids query failed:', { fallbackCode, fallbackMsg })
+          throw idsError
+        }
+
+        const ids = (idRows || []).map(r => r.following_id).filter(Boolean)
+        if (ids.length === 0) return []
+
+        const { data: profiles, error: profilesError } = await supabase
+          .from('user_profiles')
+          .select('id, username, full_name, avatar_url, bio, created_at')
+          .in('id', ids)
+
+        if (profilesError) {
+          const pCode = (profilesError as any)?.code
+          const pMsg = (profilesError as any)?.message || 'Unknown error'
+          console.error('Fallback getFollowing profiles query failed:', { pCode, pMsg })
+          throw profilesError
+        }
+
+        const map = new Map((profiles || []).map(p => [p.id, p]))
+        return ids.map(id => map.get(id)).filter(Boolean) as FollowUser[]
+      }
 
       return data?.map(follow => follow.following).filter(Boolean) || []
     } catch (error) {
-      console.error('Error fetching following:', error)
+      const details = {
+        code: (error as any)?.code,
+        message: (error as any)?.message,
+      }
+      console.error('Error fetching following:', details)
       throw error
     }
   }

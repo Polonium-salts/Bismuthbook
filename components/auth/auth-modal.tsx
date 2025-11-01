@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Eye, EyeOff, Mail, Lock, User, Github } from "lucide-react"
+import { Eye, EyeOff, Github, Lock, Mail, User } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { toast } from "sonner"
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator"
+import { validatePassword } from "@/lib/utils/password-validation"
 
 interface AuthModalProps {
   isOpen: boolean
@@ -23,8 +25,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    username: "",
-    displayName: ""
+    username: ""
   })
 
   const { signIn, signUp } = useAuth()
@@ -38,11 +39,19 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
         await signIn(formData.email, formData.password)
         toast.success("登录成功！")
       } else {
-        await signUp(formData.email, formData.password, formData.username, formData.displayName)
+        // 注册时验证密码复杂度
+        const passwordValidation = validatePassword(formData.password)
+        if (!passwordValidation.isValid) {
+          toast.error(`密码不符合要求：${passwordValidation.errors[0]}`)
+          setLoading(false)
+          return
+        }
+        
+        await signUp(formData.email, formData.password, formData.username)
         toast.success("注册成功！请查看邮箱验证链接")
       }
       onClose()
-      setFormData({ email: "", password: "", username: "", displayName: "" })
+      setFormData({ email: "", password: "", username: "" })
     } catch (error: any) {
       toast.error(error.message || "操作失败，请重试")
     } finally {
@@ -56,12 +65,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
 
   const switchMode = () => {
     setMode(mode === "login" ? "register" : "login")
-    setFormData({ email: "", password: "", username: "", displayName: "" })
+    setFormData({ email: "", password: "", username: "" })
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="text-center text-2xl font-bold">
             {mode === "login" ? "欢迎回来" : "加入我们"}
@@ -78,26 +87,11 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
                   <Input
                     id="username"
                     type="text"
-                    placeholder="请输入用户名"
+                    placeholder="请输入用户名（将作为显示名称）"
                     value={formData.username}
                     onChange={(e) => handleInputChange("username", e.target.value)}
                     className="pl-10"
                     required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="displayName">显示名称</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                  <Input
-                    id="displayName"
-                    type="text"
-                    placeholder="请输入显示名称"
-                    value={formData.displayName}
-                    onChange={(e) => handleInputChange("displayName", e.target.value)}
-                    className="pl-10"
                   />
                 </div>
               </div>
@@ -147,9 +141,20 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
                 )}
               </Button>
             </div>
+            {mode === 'register' && formData.password && (
+              <PasswordStrengthIndicator password={formData.password} />
+            )}
+
           </div>
 
-          <Button type="submit" className="w-full" disabled={loading}>
+          <Button 
+            type="submit" 
+            className="w-full" 
+            disabled={
+              loading || 
+              (mode === "register" && !validatePassword(formData.password).isValid)
+            }
+          >
             {loading ? "处理中..." : mode === "login" ? "登录" : "注册"}
           </Button>
         </form>

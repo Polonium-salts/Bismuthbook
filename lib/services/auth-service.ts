@@ -70,7 +70,7 @@ class AuthService {
         options: {
           data: {
             username: data.username,
-            full_name: data.fullName || ''
+            full_name: data.username // 使用用户名作为显示名称
           }
         }
       })
@@ -82,7 +82,7 @@ class AuthService {
         const profileData: UserProfileInsert = {
           id: authData.user.id,
           username: data.username,
-          full_name: data.fullName || null,
+          full_name: data.username, // 使用用户名作为显示名称
           avatar_url: null,
           bio: null,
           website: null
@@ -98,7 +98,7 @@ class AuthService {
           const fallbackProfile = {
             id: authData.user.id,
             username: `user_${authData.user.id.substring(0, 8)}`,
-            full_name: data.fullName || 'User',
+            full_name: `user_${authData.user.id.substring(0, 8)}`, // 使用用户名作为显示名称
             avatar_url: null,
             bio: null,
             website: null

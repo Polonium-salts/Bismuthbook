@@ -13,6 +13,7 @@ import {
   MapPin, 
   Link as LinkIcon, 
   Settings,
+  Cog,
   UserPlus,
   UserMinus,
   Share2,
@@ -136,12 +137,20 @@ export function UserProfileHeader({
             {/* 操作按钮 */}
             <div className="flex gap-2 flex-shrink-0 justify-center lg:justify-start">
               {isOwnProfile ? (
-                <Link href="/my-works">
-                  <Button variant="outline" size="sm" className="min-w-[100px]">
-                    <Settings className="w-4 h-4 mr-2" />
-                    管理作品
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/my-works">
+                    <Button variant="outline" size="sm" className="min-w-[100px]">
+                      <Settings className="w-4 h-4 mr-2" />
+                      管理作品
+                    </Button>
+                  </Link>
+                  <Link href="/settings">
+                    <Button variant="outline" size="sm" className="min-w-[80px]">
+                      <Cog className="w-4 h-4 mr-2" />
+                      设置
+                    </Button>
+                  </Link>
+                </>
               ) : (
                 <>
                   <Button

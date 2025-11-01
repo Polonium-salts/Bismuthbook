@@ -97,13 +97,12 @@ export default function UserProfilePage() {
       const totalLikes = images?.reduce((sum, img) => sum + img.like_count, 0) || 0
 
       // 获取关注统计数据
-      const followService = new FollowService()
       const followStats = await followService.getFollowStats(userId)
 
       setUserStats({
         artworks: artworksCount || 0,
-        followers: followStats.followers_count,
-        following: followStats.following_count,
+        followers: followStats.followers,
+        following: followStats.following,
         likes: totalLikes
       })
     } catch (error) {
@@ -146,8 +145,7 @@ export default function UserProfilePage() {
     if (!currentUser) return
 
     try {
-      const followService = new FollowService()
-      const isFollowingUser = await followService.isFollowing(currentUser.id, userId)
+      const isFollowingUser = await followService.isFollowing(userId, currentUser.id)
       setIsFollowing(isFollowingUser)
     } catch (error) {
       console.error('Error checking follow status:', error)
@@ -160,10 +158,8 @@ export default function UserProfilePage() {
 
     setFollowLoading(true)
     try {
-      const followService = new FollowService()
-      
       if (isFollowing) {
-        await followService.unfollowUser(currentUser.id, userProfile.id)
+        await followService.unfollowUser(userProfile.id, currentUser.id)
         setIsFollowing(false)
         // 更新关注者数量
         setUserStats(prev => ({
@@ -172,7 +168,7 @@ export default function UserProfilePage() {
         }))
         toast.success('已取消关注')
       } else {
-        await followService.followUser(currentUser.id, userProfile.id)
+        await followService.followUser(userProfile.id, currentUser.id)
         setIsFollowing(true)
         // 更新关注者数量
         setUserStats(prev => ({

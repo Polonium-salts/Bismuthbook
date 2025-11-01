@@ -341,6 +341,93 @@ class ImageService {
     }
   }
 
+  // Get images by multiple user IDs (for following feed)
+  async getImagesByUserIds(
+    userIds: string[],
+    filters: ImageFilters = {},
+    userId?: string
+  ): Promise<ImageWithUserAndStats[]> {
+    if (!userIds || userIds.length === 0) return []
+
+    const cacheKey = this.getCacheKey('images_by_user_ids', { userIds: [...userIds].sort(), filters, userId })
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
+    if (cached) return cached
+
+    try {
+      let query = supabase
+        .from('images')
+        .select(`
+          id,
+          title,
+          description,
+          image_url,
+          user_id,
+          tags,
+          category,
+          like_count,
+          view_count,
+          comment_count,
+          is_featured,
+          created_at,
+          user_profiles!inner (
+            id,
+            username,
+            avatar_url,
+            full_name
+          )
+        `)
+        .in('user_id', userIds)
+
+      // Apply sorting
+      const sortBy = filters.sortBy || 'created_at'
+      const sortOrder = filters.sortOrder || 'desc'
+      query = query.order(sortBy, { ascending: sortOrder === 'asc' })
+
+      // Apply pagination
+      const limit = filters.limit || 20
+      const offset = filters.offset || 0
+      query = query.range(offset, offset + limit - 1)
+
+      const { data, error } = await query
+      if (error) throw error
+
+      // Get user interactions if current userId provided
+      let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
+      if (userId && data && data.length > 0) {
+        const imageIds = data.map(img => img.id)
+
+        const [likesResult, favoritesResult] = await Promise.all([
+          supabase
+            .from('likes')
+            .select('image_id')
+            .eq('user_id', userId)
+            .in('image_id', imageIds),
+          supabase
+            .from('favorites')
+            .select('image_id')
+            .eq('user_id', userId)
+            .in('image_id', imageIds)
+        ])
+
+        userInteractions.likes = likesResult.data?.map(like => like.image_id) || []
+        userInteractions.favorites = favoritesResult.data?.map(fav => fav.image_id) || []
+      }
+
+      const processedData = data?.map(image => ({
+        ...image,
+        image_url: this.getImageUrl(image.image_url),
+        is_liked: userInteractions.likes.includes(image.id),
+        is_favorited: userInteractions.favorites.includes(image.id)
+      })) || []
+
+      this.setCache(cacheKey, processedData)
+      return processedData as ImageWithUserAndStats[]
+    } catch (error) {
+      console.error('Error fetching images by user ids:', error)
+      throw error
+    }
+  }
+
   // Get recent images - optimized with caching
   async getRecentImages(limit = 20) {
     const cacheKey = this.getCacheKey('recent', { limit })

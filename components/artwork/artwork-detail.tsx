@@ -137,8 +137,13 @@ export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProp
         <div className="space-y-4 sm:space-y-6">
           {/* 标题和操作 */}
           <div>
-            <div className="flex items-start justify-between mb-4">
-              <h1 className="text-2xl font-bold leading-tight">{artwork.title}</h1>
+            <div className="flex items-start justify-between mb-4 gap-4">
+              <h1 
+                className="text-2xl font-bold leading-tight flex-1 min-w-0 break-words"
+                title={artwork.title}
+              >
+                {artwork.title}
+              </h1>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm">

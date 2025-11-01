@@ -40,13 +40,15 @@ export default function ProfilePage() {
   const [likedLoading, setLikedLoading] = useState(false)
   const [favoritesLoading, setFavoritesLoading] = useState(false)
 
-  // 如果用户未登录，重定向到首页
+  // 当用户状态改变时，获取用户资料
   useEffect(() => {
-    if (!user) {
-      router.push('/')
-      return
+    if (user) {
+      fetchUserProfile()
+    } else {
+      // 未登录用户，清空加载状态
+      setLoading(false)
     }
-  }, [user, router])
+  }, [user])
 
   // 获取用户资料
   const fetchUserProfile = async () => {
@@ -229,21 +231,32 @@ export default function ProfilePage() {
     }
   }
 
-  useEffect(() => {
-    if (user) {
-      fetchUserProfile()
-    }
-  }, [user])
-
-  // 如果用户未登录，显示加载状态
+  // 如果用户未登录，显示登录提示
   if (!user) {
     return (
       <MainLayout>
         <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <Skeleton className="w-32 h-32 rounded-full mx-auto mb-4" />
-            <Skeleton className="w-48 h-6 mx-auto mb-2" />
-            <Skeleton className="w-32 h-4 mx-auto" />
+          <div className="text-center max-w-md mx-auto">
+            <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">个人资料</h2>
+            <p className="text-muted-foreground mb-6">
+              登录后查看和管理您的个人资料、作品和收藏
+            </p>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => router.push('/?auth=login')} 
+                className="w-full"
+              >
+                登录账号
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => router.push('/?auth=register')}
+                className="w-full"
+              >
+                注册新账号
+              </Button>
+            </div>
           </div>
         </div>
       </MainLayout>

@@ -18,6 +18,7 @@ import {
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { useInteractions } from "@/lib/hooks/use-interactions"
+import { useImageDimensions } from "@/lib/hooks/use-image-dimensions"
 import { toast } from "sonner"
 import dynamic from "next/dynamic"
 
@@ -28,14 +29,20 @@ const ImageDetail = dynamic(() => import("./image-detail").then(mod => ({ defaul
 interface ImageCardProps {
   image: ImageWithUserAndStats
   onImageClick?: (image: ImageWithUserAndStats) => void
+  useAspectRatio?: boolean // 是否使用图片的实际比例
 }
 
-const ImageCard = memo(function ImageCard({ image, onImageClick }: ImageCardProps) {
+const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio = false }: ImageCardProps) {
   const { user } = useAuth()
   const { viewCount, commentCount, likeCount, isLiked, isFavorited, toggleLike, toggleFavorite, loadStats } = useInteractions(image.id)
   
   const [showDetail, setShowDetail] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
+  
+  // 获取图片尺寸（仅在启用动态比例时）
+  const { aspectRatio, isLoading: isDimensionsLoading } = useImageDimensions(
+    useAspectRatio ? image.image_url : ""
+  )
 
   // 加载统计数据
   useEffect(() => {
@@ -125,7 +132,12 @@ const ImageCard = memo(function ImageCard({ image, onImageClick }: ImageCardProp
       >
         <CardContent className="p-0">
           {/* 图片容器 */}
-          <div className="relative aspect-[3/4] overflow-hidden">
+          <div 
+            className={`relative overflow-hidden ${
+              useAspectRatio ? '' : 'aspect-[3/4]'
+            }`}
+            style={useAspectRatio ? { aspectRatio: aspectRatio.toString() } : undefined}
+          >
             <Image
               src={image.image_url}
               alt={image.title || "图片"}

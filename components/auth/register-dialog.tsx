@@ -17,6 +17,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Github, Mail } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { toast } from "sonner"
+import { PasswordStrengthIndicator } from "@/components/ui/password-strength-indicator"
+import { validatePassword } from "@/lib/utils/password-validation"
 
 interface RegisterDialogProps {
   children: React.ReactNode
@@ -50,8 +52,10 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
       return
     }
     
-    if (formData.password.length < 6) {
-      toast.error("密码至少需要6个字符")
+    // 使用新的密码复杂度验证
+    const passwordValidation = validatePassword(formData.password)
+    if (!passwordValidation.isValid) {
+      toast.error(`密码不符合要求：${passwordValidation.errors[0]}`)
       return
     }
     
@@ -94,9 +98,9 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>注册 PixivClone</DialogTitle>
+          <DialogTitle>注册 BismuthBook</DialogTitle>
           <DialogDescription>
             创建您的账户，开始分享和发现精彩作品
           </DialogDescription>
@@ -132,7 +136,7 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
               <Input
                 id="username"
                 type="text"
-                placeholder="输入用户名"
+                placeholder="输入用户名（将作为显示名称）"
                 value={formData.username}
                 onChange={(e) => updateFormData("username", e.target.value)}
                 required
@@ -176,6 +180,9 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
                   )}
                 </Button>
               </div>
+              {formData.password && (
+                <PasswordStrengthIndicator password={formData.password} />
+              )}
             </div>
             
             <div className="grid gap-2">
@@ -226,7 +233,12 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={!formData.agreeToTerms || loading}
+              disabled={
+                !formData.agreeToTerms || 
+                loading || 
+                !validatePassword(formData.password).isValid ||
+                formData.password !== formData.confirmPassword
+              }
             >
               {loading ? "注册中..." : "注册"}
             </Button>

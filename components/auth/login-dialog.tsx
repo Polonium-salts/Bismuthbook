@@ -37,7 +37,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>登录到 PixivClone</DialogTitle>
+          <DialogTitle>登录到 BismuthBook</DialogTitle>
           <DialogDescription>
             登录您的账户以享受完整功能
           </DialogDescription>

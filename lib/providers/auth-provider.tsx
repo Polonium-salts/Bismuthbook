@@ -10,7 +10,7 @@ interface AuthContextType {
   profile: UserProfile | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
-  signUp: (email: string, password: string, username: string, fullName?: string) => Promise<void>
+  signUp: (email: string, password: string, username: string) => Promise<void>
   signOut: () => Promise<void>
   updateProfile: (updates: any) => Promise<void>
   refreshProfile: () => Promise<void>
@@ -81,10 +81,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const signUp = async (email: string, password: string, username: string, fullName?: string) => {
+  const signUp = async (email: string, password: string, username: string) => {
     try {
       setLoading(true)
-      await authService.signUp({ email, password, username, fullName })
+      await authService.signUp({ email, password, username })
     } catch (error) {
       setLoading(false)
       throw error
