@@ -16,12 +16,6 @@ interface SidebarProps {
   onToggle?: () => void
 }
 
-interface MenuItem {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  href: string
-}
-
 const navigationItems = [
   { icon: Home, label: "首页", href: "/" },
   { icon: Heart, label: "关注", href: "/following" },
@@ -35,7 +29,7 @@ const userSections = [
 export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
   const pathname = usePathname()
 
-  const renderMenuItem = (item: MenuItem, isActive: boolean) => {
+  const renderMenuItem = (item: any, isActive: boolean) => {
     const buttonContent = (
       <Button
         key={item.href}

@@ -14,7 +14,7 @@ interface UserCardProps {
   user: {
     id: string
     username: string
-    email?: string
+    email: string
     avatar_url?: string
     bio?: string
   }

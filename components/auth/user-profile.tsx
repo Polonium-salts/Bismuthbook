@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,14 +14,19 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { 
   User, 
   Mail, 
   Calendar, 
+  MapPin, 
   Link as LinkIcon, 
   Edit3,
   Camera,
+  Heart,
+  Eye,
+  MessageCircle,
   Loader2
 } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
@@ -59,36 +64,8 @@ export function UserProfile({ children }: UserProfileProps) {
     website: ""
   })
 
-  // 获取用户统计数据
-  const fetchUserStats = useCallback(async (userId: string) => {
-    try {
-      // 获取作品数量
-      const { count: artworksCount } = await supabase
-        .from('images')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-
-      // 获取总点赞数
-      const { data: images } = await supabase
-        .from('images')
-        .select('like_count')
-        .eq('user_id', userId)
-
-      const totalLikes = images?.reduce((sum, img) => sum + (img.like_count || 0), 0) || 0
-
-      setUserStats({
-        artworks: artworksCount || 0,
-        followers: 0, // TODO: 实现关注系统
-        following: 0, // TODO: 实现关注系统
-        likes: totalLikes
-      })
-    } catch (error) {
-      console.error('Error fetching user stats:', error)
-    }
-  }, [])
-
   // 获取用户资料
-  const fetchUserProfile = useCallback(async () => {
+  const fetchUserProfile = async () => {
     if (!user) return
     
     setLoading(true)
@@ -102,14 +79,12 @@ export function UserProfile({ children }: UserProfileProps) {
       if (error) throw error
 
       setUserProfile(profile)
-      if (profile) {
-        setProfileData({
-          username: profile.username || "",
-          full_name: profile.full_name || "",
-          bio: profile.bio || "",
-          website: profile.website || ""
-        })
-      }
+      setProfileData({
+        username: profile.username || "",
+        full_name: profile.full_name || "",
+        bio: profile.bio || "",
+        website: profile.website || ""
+      })
 
       // 获取用户统计数据
       await fetchUserStats(user.id)
@@ -119,7 +94,35 @@ export function UserProfile({ children }: UserProfileProps) {
     } finally {
       setLoading(false)
     }
-  }, [user, fetchUserStats])
+  }
+
+  // 获取用户统计数据
+  const fetchUserStats = async (userId: string) => {
+    try {
+      // 获取作品数量
+      const { count: artworksCount } = await supabase
+        .from('images')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      // 获取总点赞数
+      const { data: images } = await supabase
+        .from('images')
+        .select('like_count')
+        .eq('user_id', userId)
+
+      const totalLikes = images?.reduce((sum, img) => sum + img.like_count, 0) || 0
+
+      setUserStats({
+        artworks: artworksCount || 0,
+        followers: 0, // TODO: 实现关注系统
+        following: 0, // TODO: 实现关注系统
+        likes: totalLikes
+      })
+    } catch (error) {
+      console.error('Error fetching user stats:', error)
+    }
+  }
 
   // 保存用户资料
   const handleSave = async () => {
@@ -166,7 +169,7 @@ export function UserProfile({ children }: UserProfileProps) {
     if (user) {
       fetchUserProfile()
     }
-  }, [user, fetchUserProfile])
+  }, [user])
 
   if (!user) {
     return null

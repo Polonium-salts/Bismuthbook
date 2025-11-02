@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
-import Image from 'next/image'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,7 +31,7 @@ interface UploadModalProps {
 
 export function UploadModal({ isOpen, onClose }: UploadModalProps) {
   const { user } = useAuth()
-  const { refresh } = useImages()
+  const { refetch } = useImages()
   
   // 状态管理
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -122,8 +121,10 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
 
     try {
       // 改进的进度模拟 - 分阶段进行
+      let currentProgress = 0
       progressInterval = setInterval(() => {
         setUploadProgress(prev => {
+          currentProgress = prev
           if (prev < 30) {
             // 文件读取阶段
             return prev + Math.random() * 8 + 2
@@ -141,7 +142,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       }, 150)
 
       // 上传图片和数据
-      await imageService.uploadImageWithData(selectedFile, {
+      const result = await imageService.uploadImageWithData(selectedFile, {
         title: title.trim(),
         description: description.trim() || undefined,
         tags: tags.length > 0 ? tags : undefined,
@@ -162,7 +163,7 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
       
       // 刷新图片列表
       try {
-        await refresh()
+        await refetch()
       } catch (refreshError) {
         console.warn('Failed to refresh images:', refreshError)
         // 即使刷新失败也不影响上传成功的状态
@@ -260,11 +261,9 @@ export function UploadModal({ isOpen, onClose }: UploadModalProps) {
             ) : (
               <div className="relative">
                 <div className="relative rounded-xl overflow-hidden bg-muted">
-                  <Image
+                  <img
                     src={preview!}
                     alt="预览"
-                    width={800}
-                    height={256}
                     className="w-full h-64 object-cover"
                   />
                   <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">

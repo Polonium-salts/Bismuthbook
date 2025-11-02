@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useRef, memo, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +9,8 @@ import {
   Heart, 
   Bookmark, 
   Eye,
-  User
+  User,
+  MoreHorizontal
 } from "lucide-react"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { useAuth } from "@/lib/providers/auth-provider"
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils"
 
 interface PixivCardProps {
   artwork: ImageWithUserAndStats
+  columns: number
   onHeightCalculated?: (height: number) => void
   style?: React.CSSProperties
   className?: string
@@ -28,6 +29,7 @@ interface PixivCardProps {
 
 const PixivCard = memo(function PixivCard({ 
   artwork, 
+  columns, 
   onHeightCalculated, 
   style, 
   className 
@@ -38,6 +40,7 @@ const PixivCard = memo(function PixivCard({
   
   const [isHovered, setIsHovered] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [cardHeight, setCardHeight] = useState(0)
   const cardRef = useRef<HTMLDivElement>(null)
   const imageRef = useRef<HTMLImageElement>(null)
 
@@ -50,6 +53,7 @@ const PixivCard = memo(function PixivCard({
   useEffect(() => {
     if (imageLoaded && cardRef.current) {
       const height = cardRef.current.offsetHeight
+      setCardHeight(height)
       onHeightCalculated?.(height)
     }
   }, [imageLoaded, onHeightCalculated])
@@ -65,7 +69,7 @@ const PixivCard = memo(function PixivCard({
 
     try {
       await toggleLike()
-    } catch {
+    } catch (error) {
       toast.error("操作失败，请重试")
     }
   }, [user, toggleLike])
@@ -81,7 +85,7 @@ const PixivCard = memo(function PixivCard({
 
     try {
       await toggleFavorite()
-    } catch {
+    } catch (error) {
       toast.error("操作失败，请重试")
     }
   }, [user, toggleFavorite])
@@ -112,12 +116,10 @@ const PixivCard = memo(function PixivCard({
       >
         {/* 图片容器 */}
         <div className="relative overflow-hidden">
-          <Image
+          <img
             ref={imageRef}
             src={getImageUrl(artwork.image_url)}
             alt={artwork.title || "图片"}
-            width={400}
-            height={600}
             className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-105"
             loading="lazy"
             onLoad={() => setImageLoaded(true)}
@@ -197,7 +199,7 @@ const PixivCard = memo(function PixivCard({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2 min-w-0 flex-1">
               <Avatar className="h-6 w-6 flex-shrink-0">
-                <AvatarImage src={artwork.user_profiles?.avatar_url || undefined} />
+                <AvatarImage src={artwork.user_profiles?.avatar_url} />
                 <AvatarFallback className="text-xs">
                   <User className="h-3 w-3" />
                 </AvatarFallback>

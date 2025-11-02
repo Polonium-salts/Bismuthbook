@@ -24,7 +24,7 @@ export interface UserSettings {
   autoplayGifs: boolean
 }
 
-export type UserSettingsUpdate = Partial<UserSettings>
+export interface UserSettingsUpdate extends Partial<UserSettings> {}
 
 class SettingsService {
   private static readonly DEFAULT_SETTINGS: UserSettings = {
@@ -92,7 +92,7 @@ class SettingsService {
       }
 
       // 尝试更新现有记录
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: userId,
@@ -114,7 +114,7 @@ class SettingsService {
   // 重置用户设置为默认值
   async resetUserSettings(userId: string): Promise<UserSettings> {
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('user_settings')
         .upsert({
           user_id: userId,

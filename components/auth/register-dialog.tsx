@@ -82,9 +82,8 @@ export function RegisterDialog({ children }: RegisterDialogProps) {
         confirmPassword: "",
         agreeToTerms: false
       })
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "注册失败，请重试"
-      toast.error(errorMessage)
+    } catch (error: any) {
+      toast.error(error.message || "注册失败，请重试")
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { Search, Bell, Menu, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -40,7 +39,7 @@ export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
           </Button>
 
           {/* Logo */}
-          <Link className="flex items-center group" href="/">
+          <a className="flex items-center group" href="/">
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Sparkles className="h-6 w-6 text-primary group-hover:text-primary/80 transition-all duration-300 group-hover:rotate-12" />
@@ -50,7 +49,7 @@ export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
                 BismuthBook
               </span>
             </div>
-          </Link>
+          </a>
         </div>
 
         {/* 中间区域：搜索栏 */}

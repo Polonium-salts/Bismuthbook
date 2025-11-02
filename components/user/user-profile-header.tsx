@@ -5,15 +5,19 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Separator } from "@/components/ui/separator"
 import { 
   User, 
   Calendar, 
+  MapPin, 
   Link as LinkIcon, 
   Settings,
   Cog,
   UserPlus,
   UserMinus,
   Share2,
+  MoreHorizontal,
   Loader2
 } from "lucide-react"
 import { UserProfile } from "@/lib/types/database"

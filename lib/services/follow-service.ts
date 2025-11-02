@@ -259,8 +259,8 @@ class FollowService {
       if (error) {
         // 若联结选择失败，尝试回退到两步查询以提高健壮性
         // 例如某些环境下约束名不匹配导致联结失败
-        const code = (error as { code?: string })?.code
-        const message = (error as { message?: string })?.message || 'Unknown error'
+        const code = (error as any)?.code
+        const message = (error as any)?.message || 'Unknown error'
         console.warn('Primary getFollowing join failed:', { code, message })
 
         // 数据表不存在时给出更友好的提示
@@ -277,8 +277,8 @@ class FollowService {
           .range(offset, offset + limit - 1)
 
         if (idsError) {
-          const fallbackCode = (idsError as { code?: string })?.code
-          const fallbackMsg = (idsError as { message?: string })?.message || 'Unknown error'
+          const fallbackCode = (idsError as any)?.code
+          const fallbackMsg = (idsError as any)?.message || 'Unknown error'
           console.error('Fallback getFollowing ids query failed:', { fallbackCode, fallbackMsg })
           throw idsError
         }
@@ -292,8 +292,8 @@ class FollowService {
           .in('id', ids)
 
         if (profilesError) {
-          const pCode = (profilesError as { code?: string })?.code
-          const pMsg = (profilesError as { message?: string })?.message || 'Unknown error'
+          const pCode = (profilesError as any)?.code
+          const pMsg = (profilesError as any)?.message || 'Unknown error'
           console.error('Fallback getFollowing profiles query failed:', { pCode, pMsg })
           throw profilesError
         }
@@ -305,8 +305,8 @@ class FollowService {
       return data?.map(follow => follow.following).filter(Boolean) || []
     } catch (error) {
       const details = {
-        code: (error as { code?: string })?.code,
-        message: (error as { message?: string })?.message,
+        code: (error as any)?.code,
+        message: (error as any)?.message,
       }
       console.error('Error fetching following:', details)
       throw error

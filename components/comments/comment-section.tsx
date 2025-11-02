@@ -39,7 +39,7 @@ interface Comment {
 }
 
 interface CommentSectionProps {
-  artworkId?: string
+  artworkId: string
   comments: Comment[]
   currentUser?: {
     name: string
@@ -53,7 +53,7 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ 
-  artworkId,
+  artworkId, 
   comments, 
   currentUser, 
   isLoading = false,
@@ -65,6 +65,8 @@ export function CommentSection({
   const [newComment, setNewComment] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
+  const [editingComment, setEditingComment] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState("")
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !currentUser) return
@@ -80,16 +82,61 @@ export function CommentSection({
   const handleSubmitReply = (parentId: string) => {
     if (!replyContent.trim() || !currentUser) return
 
-    // TODO: 实现回复功能，需要通过回调函数处理
-    console.log('Reply to comment:', parentId, 'Content:', replyContent)
+    const reply: Comment = {
+      id: Date.now().toString(),
+      user: currentUser,
+      content: replyContent,
+      likes: 0,
+      isLiked: false,
+      createdAt: "刚刚"
+    }
+
+    setComments(comments.map(comment => {
+      if (comment.id === parentId) {
+        return {
+          ...comment,
+          replies: [...(comment.replies || []), reply]
+        }
+      }
+      return comment
+    }))
 
     setReplyContent("")
     setReplyingTo(null)
   }
 
   const handleLikeComment = (commentId: string, isReply = false, parentId?: string) => {
-    // TODO: 实现点赞功能，需要通过回调函数处理
-    console.log('Like comment:', commentId, 'isReply:', isReply, 'parentId:', parentId)
+    if (isReply && parentId) {
+      setComments(comments.map(comment => {
+        if (comment.id === parentId) {
+          return {
+            ...comment,
+            replies: comment.replies?.map(reply => {
+              if (reply.id === commentId) {
+                return {
+                  ...reply,
+                  isLiked: !reply.isLiked,
+                  likes: reply.isLiked ? reply.likes - 1 : reply.likes + 1
+                }
+              }
+              return reply
+            })
+          }
+        }
+        return comment
+      }))
+    } else {
+      setComments(comments.map(comment => {
+        if (comment.id === commentId) {
+          return {
+            ...comment,
+            isLiked: !comment.isLiked,
+            likes: comment.isLiked ? comment.likes - 1 : comment.likes + 1
+          }
+        }
+        return comment
+      }))
+    }
   }
 
   const CommentItem = ({ 

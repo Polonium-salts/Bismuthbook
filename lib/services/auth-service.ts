@@ -240,7 +240,7 @@ class AuthService {
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}/avatar.${fileExt}`
 
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, {
           cacheControl: '3600',

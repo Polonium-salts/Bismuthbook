@@ -1,4 +1,6 @@
 const { createClient } = require('@supabase/supabase-js')
+const fs = require('fs')
+const path = require('path')
 
 // 从环境变量读取配置
 require('dotenv').config({ path: '.env.local' })
@@ -58,14 +60,14 @@ async function applyMigration() {
 
 async function checkColumnExists(columnName) {
   try {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('information_schema.columns')
       .select('column_name')
       .eq('table_name', 'images')
       .eq('column_name', columnName)
     
     return data && data.length > 0
-  } catch {
+  } catch (err) {
     return false
   }
 }
@@ -74,7 +76,7 @@ async function testConnection() {
   try {
     console.log('🔍 测试数据库连接...')
     
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('images')
       .select('id')
       .limit(1)

@@ -5,7 +5,7 @@ import Image from "next/image"
 import { MainLayout } from "@/components/layout/main-layout"
 import { ImageCard } from "@/components/image/image-card"
 import { useAuth } from "@/lib/providers/auth-provider"
-import { interactionService } from "@/lib/services/interaction-service"
+import { favoriteService } from "@/lib/services/favorite-service"
 import { imageService } from "@/lib/services/image-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
@@ -76,20 +76,9 @@ export default function BookmarksPage() {
         .map(fav => ({
           ...fav.images,
           image_url: imageService.getImageUrl(fav.images.image_url), // 转换存储路径为公共 URL
-          user_profiles: {
-            ...fav.images.user_profiles,
-            bio: null,
-            created_at: null,
-            updated_at: null,
-            website: null
-          },
+          user_profiles: fav.images.user_profiles,
           is_liked: false, // 需要单独查询用户是否点赞
-          is_favorited: true, // 收藏的图片默认为已收藏
-          likes: [], // 空数组，实际数据通过 useInteractions 获取
-          favorites: [], // 空数组，实际数据通过 useInteractions 获取
-          comments: [], // 空数组，实际数据通过 useComments 获取
-          is_published: true, // 默认为已发布
-          published_at: fav.images.created_at // 使用创建时间作为发布时间
+          is_favorited: true // 收藏的图片默认为已收藏
         })) as ImageWithUserAndStats[]
 
       if (append) {
@@ -271,11 +260,10 @@ export default function BookmarksPage() {
                     {favoriteImages.map((image) => (
                       <div key={image.id} className="flex space-x-4 p-4 border rounded-lg hover:shadow-md transition-shadow duration-200 bg-card">
                         <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-                          <Image
+                          <img
                             src={image.image_url}
                             alt={image.title || "图片"}
-                            fill
-                            className="object-cover"
+                            className="w-full h-full object-cover"
                           />
                         </div>
                         

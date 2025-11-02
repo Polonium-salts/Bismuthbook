@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useRef, memo, useCallback, useMemo } from "react"
+import { useState, useRef, useEffect, memo, useCallback, useMemo } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import {
   Command,
   CommandEmpty,
   CommandGroup,
+  CommandInput,
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
@@ -221,7 +222,7 @@ const SearchBar = memo(function SearchBar({ onSearch, placeholder = "搜索作�
                   <div className="text-center py-6">
                     <Search className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
                     <p className="text-sm text-muted-foreground">
-                      按 Enter 搜索 &quot;{query}&quot;
+                      按 Enter 搜索 "{query}"
                     </p>
                   </div>
                 </CommandEmpty>

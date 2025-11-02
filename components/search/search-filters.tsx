@@ -19,6 +19,7 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { 
+  Filter, 
   SlidersHorizontal, 
   X,
   Calendar,
@@ -27,15 +28,8 @@ import {
   TrendingUp
 } from "lucide-react"
 
-interface SearchFilters {
-  categories: string[]
-  tags: string[]
-  sortBy: string
-  timeRange: string
-}
-
 interface SearchFiltersProps {
-  onFiltersChange?: (filters: SearchFilters) => void
+  onFiltersChange?: (filters: any) => void
   categories?: string[]
   popularTags?: string[]
   loading?: boolean
@@ -73,7 +67,7 @@ export function SearchFilters({
   const displayCategories = categories.length > 0 ? categories : defaultCategories
   const displayTags = popularTags.length > 0 ? popularTags : defaultTags
 
-  const updateFilters = (key: keyof SearchFilters, value: string | string[]) => {
+  const updateFilters = (key: string, value: any) => {
     const newFilters = { ...filters, [key]: value }
     setFilters(newFilters)
     onFiltersChange?.(newFilters)

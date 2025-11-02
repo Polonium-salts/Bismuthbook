@@ -23,8 +23,8 @@ const pageVariants = {
 };
 
 const pageTransition = {
-  type: 'tween' as const,
-  ease: 'anticipate' as const,
+  type: 'tween',
+  ease: 'anticipate',
   duration: 0.5,
 };
 
