@@ -94,7 +94,7 @@ export default function UserProfilePage() {
         .eq('user_id', userId)
         .eq('is_published', true)
 
-      const totalLikes = images?.reduce((sum, img) => sum + img.like_count, 0) || 0
+      const totalLikes = images?.reduce((sum, img) => sum + (img.like_count || 0), 0) || 0
 
       // 获取关注统计数据
       const followStats = await followService.getFollowStats(userId)
@@ -118,12 +118,7 @@ export default function UserProfilePage() {
         .from('images')
         .select(`
           *,
-          user_profiles!inner(
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
+          user_profiles!inner(*)
         `)
         .eq('user_id', userId)
         .eq('is_published', true)
@@ -131,7 +126,15 @@ export default function UserProfilePage() {
 
       if (error) throw error
 
-      setUserArtworks(artworks || [])
+      // 添加缺少的字段以匹配 ImageWithUserAndStats 类型
+      const artworksWithStats = artworks?.map(artwork => ({
+        ...artwork,
+        likes: [],
+        favorites: [],
+        comments: []
+      })) || []
+
+      setUserArtworks(artworksWithStats)
     } catch (error) {
       console.error('Error fetching user artworks:', error)
       toast.error('获取用户作品失败')
@@ -244,7 +247,7 @@ export default function UserProfilePage() {
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h1 className="text-2xl font-bold mb-2">用户不存在</h1>
             <p className="text-muted-foreground mb-6">
-              抱歉，找不到用户名为 "{username}" 的用户。
+              抱歉，找不到用户名为 &quot;{username}&quot; 的用户。
             </p>
             <Button onClick={() => window.history.back()}>
               返回上一页

@@ -40,7 +40,7 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
   const [isHovered, setIsHovered] = useState(false)
   
   // 获取图片尺寸（仅在启用动态比例时）
-  const { aspectRatio, isLoading: isDimensionsLoading } = useImageDimensions(
+  const { aspectRatio } = useImageDimensions(
     useAspectRatio ? image.image_url : ""
   )
 
@@ -61,7 +61,7 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
     try {
       await toggleLike()
       toast.success(isLiked ? "取消点赞" : "点赞成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }, [user, toggleLike, isLiked])
@@ -78,7 +78,7 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
     try {
       await toggleFavorite()
       toast.success(isFavorited ? "取消收藏" : "收藏成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }, [user, toggleFavorite, isFavorited])
@@ -90,7 +90,7 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
       const url = `${window.location.origin}/image/${image.id}`
       await navigator.clipboard.writeText(url)
       toast.success('链接已复制到剪贴板')
-    } catch (error) {
+    } catch {
       toast.error('复制失败')
     }
   }, [image.id])
@@ -243,7 +243,7 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
             {/* 作者信息 */}
             <div className="flex items-center space-x-2 pt-1">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={image.user_profiles?.avatar_url} />
+                <AvatarImage src={image.user_profiles?.avatar_url || undefined} />
                 <AvatarFallback className="text-xs">
                   <User className="h-3 w-3" />
                 </AvatarFallback>

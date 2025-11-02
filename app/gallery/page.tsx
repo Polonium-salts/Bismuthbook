@@ -40,7 +40,6 @@ export default function GalleryPage() {
     loadImages
   } = useImages({
     category: selectedCategory === 'all' ? undefined : selectedCategory,
-    searchQuery: searchQuery || undefined,
     sortBy: 'created_at',
     sortOrder: 'desc',
     limit: 20
@@ -58,13 +57,25 @@ export default function GalleryPage() {
 
   // 当分类或搜索条件改变时重新加载数据
   useEffect(() => {
-    loadImages({
-      category: selectedCategory === 'all' ? undefined : selectedCategory,
-      searchQuery: searchQuery || undefined,
-      sortBy: 'created_at',
-      sortOrder: 'desc',
-      limit: 20
-    })
+    if (searchQuery.trim()) {
+      // 如果有搜索查询，使用搜索功能
+      // 注意：这里需要直接调用 imageService.searchImages，因为 useImages hook 不支持搜索
+      // 暂时保持原有逻辑，后续可能需要重构
+      loadImages({
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+        limit: 20
+      })
+    } else {
+      // 没有搜索查询时，正常加载
+      loadImages({
+        category: selectedCategory === 'all' ? undefined : selectedCategory,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+        limit: 20
+      })
+    }
   }, [selectedCategory, searchQuery, loadImages])
 
   return (

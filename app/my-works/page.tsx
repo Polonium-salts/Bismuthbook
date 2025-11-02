@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import Image from "next/image"
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { imageService } from "@/lib/services/image-service"
@@ -13,7 +14,6 @@ import {
   Heart, 
   MessageCircle, 
   Calendar, 
-  Edit, 
   Trash2, 
   Upload,
   CheckCircle,
@@ -34,7 +34,7 @@ export default function MyWorksPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
 
   // 获取用户的所有作品
-  const fetchUserImages = async () => {
+  const fetchUserImages = useCallback(async () => {
     if (!user) return
     
     try {
@@ -47,11 +47,11 @@ export default function MyWorksPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
 
   useEffect(() => {
     fetchUserImages()
-  }, [user])
+  }, [user, fetchUserImages])
 
   // 发布作品
   const handlePublish = async (imageId: string) => {
@@ -116,10 +116,11 @@ export default function MyWorksPage() {
   const ImageCard = ({ image }: { image: ImageWithUser }) => (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative aspect-square">
-        <img
+        <Image
           src={image.image_url}
           alt={image.title}
-          className="w-full h-full object-cover"
+          fill
+          className="object-cover"
         />
         <div className="absolute top-2 right-2">
           {image.is_published ? (
@@ -164,7 +165,7 @@ export default function MyWorksPage() {
         {/* 创建时间 */}
         <div className="flex items-center text-xs text-muted-foreground mb-4">
           <Calendar className="w-3 h-3 mr-1" />
-          {new Date(image.created_at).toLocaleDateString('zh-CN')}
+          {image.created_at ? new Date(image.created_at).toLocaleDateString('zh-CN') : '未知时间'}
         </div>
         
         {/* 操作按钮 */}

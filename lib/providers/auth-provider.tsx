@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { authService } from '../services/auth-service'
-import { UserProfile } from '../types/database'
+import { UserProfile, UserProfileUpdate } from '../types/database'
 
 interface AuthContextType {
   user: User | null
@@ -12,7 +12,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, username: string) => Promise<void>
   signOut: () => Promise<void>
-  updateProfile: (updates: any) => Promise<void>
+  updateProfile: (updates: UserProfileUpdate) => Promise<void>
   refreshProfile: () => Promise<void>
 }
 
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const updateProfile = async (updates: any) => {
+  const updateProfile = async (updates: UserProfileUpdate) => {
     if (!user) throw new Error('No user logged in')
     
     try {

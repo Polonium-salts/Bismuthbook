@@ -2,19 +2,20 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Heart, Bookmark, Eye, MessageCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { ImageWithStats } from "@/lib/types/database"
+import { ImageWithUserAndStats } from "@/lib/types/database"
 import { useInteractions } from "@/lib/hooks/use-interactions"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { toast } from "sonner"
 
 interface ArtworkCardProps {
-  artwork: ImageWithStats
+  artwork: ImageWithUserAndStats
   className?: string
 }
 
@@ -39,7 +40,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
     try {
       await toggleLike()
       toast.success(isLiked ? "取消点赞" : "点赞成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -56,7 +57,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
     try {
       await toggleFavorite()
       toast.success(isFavorited ? "取消收藏" : "收藏成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -73,10 +74,11 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
         <CardContent className="p-0">
           {/* Image Container */}
           <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl">
-            <img
-              src={artwork.url}
+            <Image
+              src={artwork.image_url}
               alt={artwork.title}
-              className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out"
+              fill
+              className="object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
             />
             
             {/* Overlay with actions */}
@@ -140,7 +142,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
             {/* Artist info */}
             <div className="flex items-center space-x-3">
               <Avatar className="h-7 w-7 ring-2 ring-white shadow-sm">
-                <AvatarImage src={artwork.user_profiles?.avatar_url} alt={artwork.user_profiles?.full_name || artwork.user_profiles?.username} />
+                <AvatarImage src={artwork.user_profiles?.avatar_url || undefined} alt={artwork.user_profiles?.full_name || artwork.user_profiles?.username} />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
                   {(artwork.user_profiles?.full_name || artwork.user_profiles?.username || 'U').charAt(0)}
                 </AvatarFallback>

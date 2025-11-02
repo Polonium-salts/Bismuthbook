@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -12,8 +13,7 @@ import {
   MessageCircle, 
   Upload,
   Grid3X3,
-  List,
-  Filter
+  List
 } from "lucide-react"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { getImageUrl } from "@/lib/supabase"
@@ -133,11 +133,12 @@ function ArtworkCard({ artwork }: { artwork: ImageWithUserAndStats }) {
       <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer">
       <div className="relative aspect-square overflow-hidden">
         {!imageError ? (
-          <img
+          <Image
             src={getImageUrl(artwork.image_url)}
             alt={artwork.title || '无标题'}
+            fill
             className={cn(
-              "w-full h-full object-cover transition-transform duration-300 group-hover:scale-105",
+              "object-cover transition-transform duration-300 group-hover:scale-105",
               imageLoading && "opacity-0"
             )}
             onLoad={() => setImageLoading(false)}
@@ -192,7 +193,7 @@ function ArtworkCard({ artwork }: { artwork: ImageWithUserAndStats }) {
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span className="truncate">
-            {new Date(artwork.created_at).toLocaleDateString('zh-CN')}
+            {new Date(artwork.created_at || 0).toLocaleDateString('zh-CN')}
           </span>
           
           {artwork.category && (
@@ -220,11 +221,12 @@ function ArtworkListItem({ artwork }: { artwork: ImageWithUserAndStats }) {
           {/* 缩略图 */}
           <div className="relative w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 flex-shrink-0 overflow-hidden rounded-lg">
             {!imageError ? (
-              <img
+              <Image
                 src={getImageUrl(artwork.image_url)}
                 alt={artwork.title || '无标题'}
+                fill
                 className={cn(
-                  "w-full h-full object-cover",
+                  "object-cover",
                   imageLoading && "opacity-0"
                 )}
                 onLoad={() => setImageLoading(false)}
@@ -281,7 +283,7 @@ function ArtworkListItem({ artwork }: { artwork: ImageWithUserAndStats }) {
               </div>
 
               <span className="text-xs text-muted-foreground">
-                {new Date(artwork.created_at).toLocaleDateString('zh-CN')}
+                {new Date(artwork.created_at || 0).toLocaleDateString('zh-CN')}
               </span>
             </div>
           </div>

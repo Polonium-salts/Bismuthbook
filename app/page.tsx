@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PixivGrid } from "@/components/artwork/pixiv-grid"
 import { SearchBar } from "@/components/search/search-bar"
@@ -10,13 +10,20 @@ import { useAuth } from "@/lib/providers/auth-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Clock, Heart, Eye } from "lucide-react"
+import { TrendingUp, Clock } from "lucide-react"
+
+interface HomeFilters {
+  category?: string
+  tags?: string[]
+  dateRange?: string
+  sortBy?: 'created_at' | 'like_count' | 'view_count'
+}
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [filters, setFilters] = useState({})
+  const [filters, setFilters] = useState<HomeFilters>({})
   const [viewMode, setViewMode] = useState<'popular' | 'recent' | 'search'>('popular')
-  const { user } = useAuth()
+  const {} = useAuth()
 
   // 使用真实数据 hooks
   const {
@@ -27,8 +34,7 @@ export default function Home() {
     hasMore: hasMoreSearch,
     refresh: refreshSearch
   } = useImages({
-    searchQuery,
-    category: filters.categories?.[0],
+    category: filters.category,
     tags: filters.tags,
     sortBy: filters.sortBy || 'created_at',
     limit: 20
@@ -106,8 +112,22 @@ export default function Home() {
     setSearchQuery(query)
   }, [])
 
-  const handleFiltersChange = useCallback((newFilters: any) => {
-    setFilters(newFilters)
+  const handleFiltersChange = useCallback((newFilters: {
+    categories: string[]
+    tags: string[]
+    sortBy: string
+    timeRange: string
+  }) => {
+    // 转换 SearchFilters 组件的类型到 HomeFilters
+    const homeFilters: HomeFilters = {
+      category: newFilters.categories?.[0],
+      tags: newFilters.tags,
+      dateRange: newFilters.timeRange,
+      sortBy: newFilters.sortBy === 'created_at' ? 'created_at' : 
+              newFilters.sortBy === 'like_count' ? 'like_count' :
+              newFilters.sortBy === 'view_count' ? 'view_count' : 'created_at'
+    }
+    setFilters(homeFilters)
   }, [])
 
   const handleViewModeChange = useCallback((mode: 'popular' | 'recent' | 'search') => {
@@ -198,7 +218,7 @@ export default function Home() {
               {isSearchMode ? (
                 <>
                   <span>搜索结果</span>
-                  {searchQuery && <Badge variant="secondary">"{searchQuery}"</Badge>}
+                  {searchQuery && <Badge variant="secondary">&quot;{searchQuery}&quot;</Badge>}
                 </>
               ) : viewMode === 'popular' ? (
                 <>

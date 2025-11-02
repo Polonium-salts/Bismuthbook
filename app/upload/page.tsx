@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { imageService } from "@/lib/services/image-service"
@@ -12,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle, Camera, Palette, Sparkles, Home, Loader2 } from "lucide-react"
+import { Upload, X, Image as ImageIcon, CheckCircle, AlertCircle, Camera, Palette, Home, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 
@@ -139,7 +140,7 @@ export default function UploadPage() {
         })
       }, 200)
 
-      const result = await imageService.uploadImageWithData(
+      await imageService.uploadImageWithData(
         selectedFile,
         {
           title: formData.title.trim(),
@@ -254,9 +255,11 @@ export default function UploadPage() {
                 <div className="space-y-4">
                   {/* 图片预览 */}
                   <div className="relative">
-                    <img
+                    <Image
                       src={preview!}
                       alt="预览"
+                      width={800}
+                      height={256}
                       className="w-full h-64 object-cover rounded-lg"
                     />
                     {!uploading && (

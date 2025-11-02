@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,19 +14,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { 
   User, 
   Mail, 
   Calendar, 
-  MapPin, 
   Link as LinkIcon, 
   Edit3,
   Camera,
-  Heart,
-  Eye,
-  MessageCircle,
   Loader2
 } from "lucide-react"
 import { useAuth } from "@/lib/providers/auth-provider"
@@ -64,40 +59,8 @@ export function UserProfile({ children }: UserProfileProps) {
     website: ""
   })
 
-  // 获取用户资料
-  const fetchUserProfile = async () => {
-    if (!user) return
-    
-    setLoading(true)
-    try {
-      const { data: profile, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle()
-
-      if (error) throw error
-
-      setUserProfile(profile)
-      setProfileData({
-        username: profile.username || "",
-        full_name: profile.full_name || "",
-        bio: profile.bio || "",
-        website: profile.website || ""
-      })
-
-      // 获取用户统计数据
-      await fetchUserStats(user.id)
-    } catch (error) {
-      console.error('Error fetching user profile:', error)
-      toast.error('获取用户资料失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   // 获取用户统计数据
-  const fetchUserStats = async (userId: string) => {
+  const fetchUserStats = useCallback(async (userId: string) => {
     try {
       // 获取作品数量
       const { count: artworksCount } = await supabase
@@ -111,7 +74,7 @@ export function UserProfile({ children }: UserProfileProps) {
         .select('like_count')
         .eq('user_id', userId)
 
-      const totalLikes = images?.reduce((sum, img) => sum + img.like_count, 0) || 0
+      const totalLikes = images?.reduce((sum, img) => sum + (img.like_count || 0), 0) || 0
 
       setUserStats({
         artworks: artworksCount || 0,
@@ -122,7 +85,41 @@ export function UserProfile({ children }: UserProfileProps) {
     } catch (error) {
       console.error('Error fetching user stats:', error)
     }
-  }
+  }, [])
+
+  // 获取用户资料
+  const fetchUserProfile = useCallback(async () => {
+    if (!user) return
+    
+    setLoading(true)
+    try {
+      const { data: profile, error } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .maybeSingle()
+
+      if (error) throw error
+
+      setUserProfile(profile)
+      if (profile) {
+        setProfileData({
+          username: profile.username || "",
+          full_name: profile.full_name || "",
+          bio: profile.bio || "",
+          website: profile.website || ""
+        })
+      }
+
+      // 获取用户统计数据
+      await fetchUserStats(user.id)
+    } catch (error) {
+      console.error('Error fetching user profile:', error)
+      toast.error('获取用户资料失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [user, fetchUserStats])
 
   // 保存用户资料
   const handleSave = async () => {
@@ -169,7 +166,7 @@ export function UserProfile({ children }: UserProfileProps) {
     if (user) {
       fetchUserProfile()
     }
-  }, [user])
+  }, [user, fetchUserProfile])
 
   if (!user) {
     return null

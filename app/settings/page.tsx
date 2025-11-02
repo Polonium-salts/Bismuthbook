@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { MainLayout } from '@/components/layout/main-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -76,7 +76,7 @@ export default function SettingsPage() {
   }, [user, userProfile])
 
   // 用户名验证函数
-  const validateUsername = async (username: string) => {
+  const validateUsername = useCallback(async (username: string) => {
     if (!user || !username.trim()) {
       setUsernameValidation(prev => ({
         ...prev,
@@ -129,7 +129,7 @@ export default function SettingsPage() {
         }))
         return false
       }
-    } catch (error) {
+    } catch {
       setUsernameValidation(prev => ({
         ...prev,
         isValid: false,
@@ -138,7 +138,7 @@ export default function SettingsPage() {
       }))
       return false
     }
-  }
+  }, [user, usernameValidation.originalUsername])
 
   // 防抖的用户名验证
   useEffect(() => {
@@ -149,7 +149,7 @@ export default function SettingsPage() {
     }, 500)
 
     return () => clearTimeout(timeoutId)
-  }, [profileData.username, usernameValidation.originalUsername, user])
+  }, [profileData.username, usernameValidation.originalUsername, user, validateUsername])
 
   // 保存用户资料
   const handleSaveProfile = async () => {
@@ -168,7 +168,7 @@ export default function SettingsPage() {
       await authService.updateUserProfile(user.id, {
         username: profileData.username,
         bio: profileData.bio,
-        avatar_url: profileData.avatar_url
+        fullName: profileData.username  // 将显示名称设置为与用户名相同
       })
       
       // 更新原始用户名
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.profileVisibility || 'public'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ profileVisibility: value as any })
+                      handleSaveSettings({ profileVisibility: value as 'public' | 'followers' | 'private' })
                     }
                   >
                     <SelectTrigger>
@@ -635,7 +635,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.theme || 'system'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ theme: value as any })
+                      handleSaveSettings({ theme: value as 'light' | 'dark' | 'system' })
                     }
                   >
                     <SelectTrigger>
@@ -674,7 +674,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.gridSize || 'medium'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ gridSize: value as any })
+                      handleSaveSettings({ gridSize: value as 'small' | 'medium' | 'large' })
                     }
                   >
                     <SelectTrigger>

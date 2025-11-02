@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { ImageCard } from "@/components/image/image-card"
 import { Button } from "@/components/ui/button"
@@ -9,7 +9,6 @@ import {
   Heart, 
   Grid3X3, 
   List, 
-  Filter,
   Search,
   Trash2,
   Download,
@@ -19,26 +18,24 @@ import { supabase } from "@/lib/supabase"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { toast } from "sonner"
 
+interface FavoriteWithDate extends ImageWithUserAndStats {
+  favorite_date?: string | null
+}
+
 interface FavoritesPageProps {
   className?: string
 }
 
 export function FavoritesPage({ className }: FavoritesPageProps) {
   const { user } = useAuth()
-  const [favorites, setFavorites] = useState<ImageWithUserAndStats[]>([])
+  const [favorites, setFavorites] = useState<FavoriteWithDate[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [selectedItems, setSelectedItems] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState<"date" | "title" | "author">("date")
 
-  useEffect(() => {
-    if (user) {
-      loadFavorites()
-    }
-  }, [user])
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     if (!user) return
 
     try {
@@ -49,12 +46,7 @@ export function FavoritesPage({ className }: FavoritesPageProps) {
           created_at,
           images (
             *,
-            user_profiles (
-              id,
-              username,
-              avatar_url,
-              full_name
-            )
+            user_profiles (*)
           )
         `)
         .eq('user_id', user.id)
@@ -67,8 +59,11 @@ export function FavoritesPage({ className }: FavoritesPageProps) {
         user_profiles: fav.images.user_profiles,
         is_liked: false,
         is_favorited: true,
-        favorite_date: fav.created_at
-      })) as ImageWithUserAndStats[]
+        favorite_date: fav.created_at,
+        likes: [],
+        favorites: [],
+        comments: []
+      })) as FavoriteWithDate[]
 
       setFavorites(favoritesWithStats || [])
     } catch (error) {
@@ -77,7 +72,13 @@ export function FavoritesPage({ className }: FavoritesPageProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user])
+
+  useEffect(() => {
+    if (user) {
+      loadFavorites()
+    }
+  }, [user, loadFavorites])
 
   const handleRemoveFromFavorites = async (imageId: string) => {
     if (!user) return
@@ -152,8 +153,8 @@ export function FavoritesPage({ className }: FavoritesPageProps) {
           return a.user_profiles.username.localeCompare(b.user_profiles.username)
         case "date":
         default:
-          return new Date(b.favorite_date || b.created_at).getTime() - 
-                 new Date(a.favorite_date || a.created_at).getTime()
+          return new Date(b.favorite_date || b.created_at || 0).getTime() - 
+                 new Date(a.favorite_date || a.created_at || 0).getTime()
       }
     })
 
@@ -334,9 +335,8 @@ export function FavoritesPage({ className }: FavoritesPageProps) {
                 </Button>
               </div>
 
-              <ImageCard 
-                image={favorite} 
-                className={viewMode === "list" ? "flex-row" : ""}
+              <ImageCard
+                image={favorite}
               />
             </div>
           ))}

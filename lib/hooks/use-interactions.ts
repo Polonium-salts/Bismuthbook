@@ -119,7 +119,7 @@ export function useInteractions(imageId?: string, initialStats?: Partial<Interac
 }
 
 // Transform CommentWithUser to match UI component expectations
-function transformComment(comment: CommentWithUser) {
+function transformComment(comment: CommentWithUser): Comment {
   return {
     id: comment.id,
     content: comment.content,
@@ -137,10 +137,27 @@ function transformComment(comment: CommentWithUser) {
   }
 }
 
+// Comment type for UI components
+interface Comment {
+  id: string
+  content: string
+  createdAt: string
+  isEdited: boolean
+  user: {
+    name: string
+    avatar: string
+    isArtist: boolean
+    isVerified: boolean
+  }
+  likes: number
+  isLiked: boolean
+  replies: Comment[]
+}
+
 // Hook for managing comments
 export function useComments(imageId?: string) {
   const { user } = useAuth()
-  const [comments, setComments] = useState<any[]>([])
+  const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 

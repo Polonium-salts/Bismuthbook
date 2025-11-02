@@ -69,10 +69,10 @@ class ImageService {
   }
 
   // Cache for frequently accessed data
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>()
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-  private getCacheKey(prefix: string, params: any): string {
+  private getCacheKey(prefix: string, params: Record<string, unknown>): string {
     return `${prefix}:${JSON.stringify(params)}`
   }
 
@@ -85,15 +85,15 @@ class ImageService {
     return null
   }
 
-  private setCache(key: string, data: any, ttl: number = this.CACHE_TTL): void {
+  private setCache(key: string, data: unknown, ttl: number = this.CACHE_TTL): void {
     this.cache.set(key, { data, timestamp: Date.now(), ttl })
   }
 
   // Test database connection and table structure
-  async testConnection(): Promise<{ success: boolean; error?: string; tableInfo?: any }> {
+  async testConnection(): Promise<{ success: boolean; error?: string; tableInfo?: unknown }> {
     try {
       // Test basic connection
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('images')
         .select('count(*)')
         .limit(1)
@@ -103,7 +103,7 @@ class ImageService {
       }
 
       // Get table structure info
-      const { data: tableInfo, error: tableError } = await supabase
+      const { data: tableInfo } = await supabase
         .from('images')
         .select('id, title, image_url, user_id, created_at')
         .limit(1)
@@ -130,7 +130,7 @@ class ImageService {
     if (cached) return cached
 
     const maxRetries = 3
-    let lastError: any
+    let lastError: Error | null = null
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -190,7 +190,7 @@ class ImageService {
         if (error) throw error
 
         // Get user interactions in a separate optimized query if userId is provided
-        let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
+        const userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
         if (userId && data && data.length > 0) {
           const imageIds = data.map(img => img.id)
           
@@ -232,10 +232,10 @@ class ImageService {
           name: error instanceof Error ? error.name : 'UnknownError',
           stack: error instanceof Error ? error.stack : undefined,
           supabaseError: error && typeof error === 'object' && 'code' in error ? {
-            code: (error as any).code,
-            details: (error as any).details,
-            hint: (error as any).hint,
-            message: (error as any).message
+            code: (error as { code?: string }).code,
+            details: (error as { details?: string }).details,
+            hint: (error as { hint?: string }).hint,
+            message: (error as { message?: string }).message
           } : undefined,
           filters,
           userId,
@@ -260,7 +260,7 @@ class ImageService {
   // Get popular images (trending) - optimized with caching
   async getPopularImages(limit = 20, timeframe: 'day' | 'week' | 'month' | 'all' = 'week') {
     const cacheKey = this.getCacheKey('popular', { limit, timeframe })
-    const cached = this.getFromCache<any[]>(cacheKey)
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
     if (cached) return cached
 
     try {
@@ -392,7 +392,7 @@ class ImageService {
       if (error) throw error
 
       // Get user interactions if current userId provided
-      let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
+      const userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
       if (userId && data && data.length > 0) {
         const imageIds = data.map(img => img.id)
 
@@ -431,7 +431,7 @@ class ImageService {
   // Get recent images - optimized with caching
   async getRecentImages(limit = 20) {
     const cacheKey = this.getCacheKey('recent', { limit })
-    const cached = this.getFromCache<any[]>(cacheKey)
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
     if (cached) return cached
 
     try {
@@ -686,8 +686,8 @@ class ImageService {
       const processedData = {
         ...data,
         image_url: this.getImageUrl(data.image_url), // Convert storage path to public URL
-        is_liked: userId ? data.likes.some((like: any) => like.user_id === userId) : false,
-        is_favorited: userId ? data.favorites.some((fav: any) => fav.user_id === userId) : false,
+        is_liked: userId ? data.likes.some((like: { user_id: string }) => like.user_id === userId) : false,
+        is_favorited: userId ? data.favorites.some((fav: { user_id: string }) => fav.user_id === userId) : false,
         likes: undefined,
         favorites: undefined
       }
@@ -874,8 +874,8 @@ class ImageService {
       const processedData = data?.map(image => ({
         ...image,
         image_url: this.getImageUrl(image.image_url), // Convert storage path to public URL
-        is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
-        is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
+        is_liked: userId ? image.likes.some((like: { user_id: string }) => like.user_id === userId) : false,
+        is_favorited: userId ? image.favorites.some((fav: { user_id: string }) => fav.user_id === userId) : false,
         likes: undefined,
         favorites: undefined
       })) || []
