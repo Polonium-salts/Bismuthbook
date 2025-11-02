@@ -1,6 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../supabase'
 import type { User } from '@supabase/supabase-js'
-import type { UserProfile, UserProfileInsert, UserProfileUpdate } from '@/lib/types/database'
+import type { UserProfile, UserProfileInsert, UserProfileUpdate } from '../types/database'
 
 export interface SignUpData {
   email: string
@@ -19,6 +19,7 @@ export interface UpdateProfileData {
   fullName?: string
   bio?: string
   website?: string
+  avatar_url?: string
   avatarFile?: File
 }
 
@@ -55,7 +56,8 @@ class AuthService {
   private clearUserCache(userId: string): void {
     this.userProfileCache.delete(this.getCacheKey(userId))
     // Clear username cache entries that might reference this user
-    for (const [key, value] of this.usernameCache.entries()) {
+    const entries = Array.from(this.usernameCache.entries())
+    for (const [key, value] of entries) {
       if (value.data?.id === userId) {
         this.usernameCache.delete(key)
       }
@@ -240,7 +242,7 @@ class AuthService {
       const fileExt = file.name.split('.').pop()
       const fileName = `${userId}/avatar.${fileExt}`
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from('avatars')
         .upload(fileName, file, {
           cacheControl: '3600',

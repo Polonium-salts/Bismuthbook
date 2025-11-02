@@ -96,12 +96,23 @@ export default function ProfilePage() {
       // 获取关注统计
       const followStats = await followService.getFollowStats(userId)
 
-      // 获取获赞数量
-      const { count: likesCount } = await supabase
-        .from('interactions')
-        .select('*', { count: 'exact', head: true })
-        .eq('target_user_id', userId)
-        .eq('type', 'like')
+      // 获取获赞数量 - 统计用户所有作品的点赞数
+      const { data: userImages } = await supabase
+        .from('images')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_published', true)
+
+      let likesCount = 0
+      if (userImages && userImages.length > 0) {
+        const imageIds = userImages.map(img => img.id)
+        const { count } = await supabase
+          .from('likes')
+          .select('*', { count: 'exact', head: true })
+          .in('image_id', imageIds)
+        
+        likesCount = count || 0
+      }
 
       setUserStats({
         artworks: artworksCount || 0,
@@ -123,7 +134,7 @@ export default function ProfilePage() {
         .from('images')
         .select(`
           *,
-          user_profiles!inner(username, full_name, avatar_url)
+          user_profiles!inner(*)
         `)
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
@@ -133,12 +144,15 @@ export default function ProfilePage() {
         return
       }
 
-      // 使用数据库中已有的统计字段
+      // 使用数据库中已有的统计字段，并添加必需的数组属性
       const artworksWithStats = data?.map(artwork => ({
         ...artwork,
         likes_count: artwork.like_count || 0,
         views_count: artwork.view_count || 0,
-        comments_count: artwork.comment_count || 0
+        comments_count: artwork.comment_count || 0,
+        likes: [],
+        favorites: [],
+        comments: []
       })) || []
 
       setUserArtworks(artworksWithStats)
@@ -161,7 +175,7 @@ export default function ProfilePage() {
         .select(`
           images!inner(
             *,
-            user_profiles!inner(username, full_name, avatar_url)
+            user_profiles!inner(*)
           )
         `)
         .eq('user_id', user.id)
@@ -178,7 +192,10 @@ export default function ProfilePage() {
           ...artwork,
           likes_count: artwork.like_count || 0,
           views_count: artwork.view_count || 0,
-          comments_count: artwork.comment_count || 0
+          comments_count: artwork.comment_count || 0,
+          likes: [],
+          favorites: [],
+          comments: []
         }
       }) || []
 
@@ -202,7 +219,7 @@ export default function ProfilePage() {
         .select(`
           images!inner(
             *,
-            user_profiles!inner(username, full_name, avatar_url)
+            user_profiles!inner(*)
           )
         `)
         .eq('user_id', user.id)
@@ -219,7 +236,10 @@ export default function ProfilePage() {
           ...artwork,
           likes_count: artwork.like_count || 0,
           views_count: artwork.view_count || 0,
-          comments_count: artwork.comment_count || 0
+          comments_count: artwork.comment_count || 0,
+          likes: [],
+          favorites: [],
+          comments: []
         }
       }) || []
 
@@ -320,7 +340,7 @@ export default function ProfilePage() {
         {/* 用户资料头部 */}
         <UserProfileHeader
           userProfile={userProfile}
-          userStats={userStats}
+          userStats={userStats || { artworks: 0, followers: 0, following: 0, likes: 0 }}
           isOwnProfile={true}
           isFollowing={false}
           followLoading={false}
@@ -344,7 +364,6 @@ export default function ProfilePage() {
               artworks={userArtworks}
               loading={artworksLoading}
               emptyMessage="还没有发布任何作品"
-              emptyDescription="开始创作并分享你的第一个作品吧！"
             />
           </TabsContent>
 
@@ -353,7 +372,6 @@ export default function ProfilePage() {
               artworks={likedArtworks}
               loading={likedLoading}
               emptyMessage="还没有喜欢任何作品"
-              emptyDescription="去发现一些精彩的作品吧！"
             />
           </TabsContent>
 
@@ -362,7 +380,6 @@ export default function ProfilePage() {
               artworks={favoriteArtworks}
               loading={favoritesLoading}
               emptyMessage="收藏夹是空的"
-              emptyDescription="收藏一些喜欢的作品以便稍后查看"
             />
           </TabsContent>
         </Tabs>

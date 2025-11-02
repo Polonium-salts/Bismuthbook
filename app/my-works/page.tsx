@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Image from "next/image"
 import { MainLayout } from "@/components/layout/main-layout"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { imageService } from "@/lib/services/image-service"
@@ -116,9 +117,11 @@ export default function MyWorksPage() {
   const ImageCard = ({ image }: { image: ImageWithUser }) => (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative aspect-square">
-        <img
+        <Image
           src={image.image_url}
           alt={image.title}
+          width={400}
+          height={400}
           className="w-full h-full object-cover"
         />
         <div className="absolute top-2 right-2">
@@ -164,7 +167,7 @@ export default function MyWorksPage() {
         {/* 创建时间 */}
         <div className="flex items-center text-xs text-muted-foreground mb-4">
           <Calendar className="w-3 h-3 mr-1" />
-          {new Date(image.created_at).toLocaleDateString('zh-CN')}
+          {image.created_at ? new Date(image.created_at).toLocaleDateString('zh-CN') : '未知时间'}
         </div>
         
         {/* 操作按钮 */}

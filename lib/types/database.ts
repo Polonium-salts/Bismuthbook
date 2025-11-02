@@ -398,6 +398,10 @@ export interface ImageWithStats extends Image {
   likes: Like[]
   favorites: Favorite[]
   comments: Comment[]
+  user_profiles: UserProfile
+  url?: string // 兼容性别名
+  is_liked?: boolean
+  is_favorited?: boolean
 }
 
 export interface ImageWithUserAndStats extends ImageWithUser {

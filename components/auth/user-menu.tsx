@@ -36,7 +36,7 @@ export function UserMenu() {
     try {
       await signOut()
       toast.success("已退出登录")
-    } catch (error) {
+    } catch {
       toast.error("退出登录失败")
     }
   }

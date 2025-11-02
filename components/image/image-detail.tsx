@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import Image from "next/image"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -24,9 +24,8 @@ import {
 import { useAuth } from "@/lib/providers/auth-provider"
 import { useInteractions } from "@/lib/hooks/use-interactions"
 import { useComments } from "@/lib/hooks/use-interactions"
-import { supabase } from "@/lib/supabase"
 import { toast } from "sonner"
-import { ImageWithUserAndStats, Comment, CommentWithUser } from "@/lib/types/database"
+import { ImageWithUserAndStats } from "@/lib/types/database"
 
 interface ImageDetailProps {
   image: ImageWithUserAndStats | null
@@ -70,7 +69,7 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
     try {
       await toggleLike()
       toast.success(isLiked ? "取消点赞" : "点赞成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -84,7 +83,7 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
     try {
       await toggleFavorite()
       toast.success(isFavorited ? "取消收藏" : "收藏成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -95,7 +94,7 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
     try {
       await navigator.clipboard.writeText(window.location.href)
       toast.success('链接已复制到剪贴板')
-    } catch (error) {
+    } catch {
       toast.error('复制失败')
     }
   }
@@ -151,9 +150,11 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
         <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
           {/* 左侧：图片 */}
           <div className="relative bg-black flex items-center justify-center">
-            <img
+            <Image
               src={image.image_url}
               alt={image.title || "图片"}
+              width={800}
+              height={600}
               className="max-w-full max-h-full object-contain"
             />
           </div>
@@ -165,7 +166,7 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-10 w-10">
-                    <AvatarImage src={image.user_profiles?.avatar_url} />
+                    <AvatarImage src={image.user_profiles?.avatar_url || undefined} />
                     <AvatarFallback>
                       <User className="h-5 w-5" />
                     </AvatarFallback>
@@ -225,7 +226,7 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
                     </div>
                     <div className="flex items-center space-x-1">
                       <Calendar className="h-4 w-4" />
-                      <span>{formatDate(image.created_at)}</span>
+                      <span>{formatDate(image.created_at || '')}</span>
                     </div>
                   </div>
 
@@ -319,18 +320,18 @@ export function ImageDetail({ image, isOpen, onClose }: ImageDetailProps) {
                         comments.map((comment) => (
                           <div key={comment.id} className="flex space-x-3">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={comment.user_profiles?.avatar_url} />
+                              <AvatarImage src={comment.user.avatar || undefined} />
                               <AvatarFallback>
-                                <User className="h-4 w-4" />
+                                {comment.user.name?.[0] || 'U'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 space-y-1">
                               <div className="flex items-center space-x-2">
                                 <span className="font-semibold text-sm">
-                                  {comment.user_profiles?.full_name || comment.user_profiles?.username || '匿名用户'}
+                                  {comment.user.name}
                                 </span>
                                 <span className="text-xs text-muted-foreground">
-                                  {formatDate(comment.created_at)}
+                                  {formatDate(comment.createdAt)}
                                 </span>
                               </div>
                               <p className="text-sm">{comment.content}</p>

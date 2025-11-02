@@ -52,8 +52,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = "login" }: AuthModalP
       }
       onClose()
       setFormData({ email: "", password: "", username: "" })
-    } catch (error: any) {
-      toast.error(error.message || "操作失败，请重试")
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "操作失败，请重试"
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

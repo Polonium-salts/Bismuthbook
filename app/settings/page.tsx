@@ -15,7 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { Upload, Save, Loader2, User, Bell, Shield, Palette } from 'lucide-react'
 import { useAuth } from '@/lib/providers/auth-provider'
 import { authService } from '@/lib/services/auth-service'
-import { settingsService, UserSettings } from '@/lib/services/settings-service'
+import { settingsService, UserSettings, UserSettingsUpdate } from '@/lib/services/settings-service'
 import { toast } from 'sonner'
 
 export default function SettingsPage() {
@@ -541,7 +541,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.profileVisibility || 'public'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ profileVisibility: value as any })
+                      handleSaveSettings({ profileVisibility: value as UserSettings['profileVisibility'] })
                     }
                   >
                     <SelectTrigger>
@@ -635,7 +635,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.theme || 'system'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ theme: value as any })
+                      handleSaveSettings({ theme: value as 'light' | 'dark' | 'system' })
                     }
                   >
                     <SelectTrigger>
@@ -674,7 +674,7 @@ export default function SettingsPage() {
                   <Select
                     value={settings?.gridSize || 'medium'}
                     onValueChange={(value) => 
-                      handleSaveSettings({ gridSize: value as any })
+                      handleSaveSettings({ gridSize: value as 'small' | 'medium' | 'large' })
                     }
                   >
                     <SelectTrigger>

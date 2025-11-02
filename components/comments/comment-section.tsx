@@ -41,6 +41,7 @@ interface Comment {
 interface CommentSectionProps {
   artworkId: string
   comments: Comment[]
+  setComments?: (comments: Comment[]) => void
   currentUser?: {
     name: string
     avatar: string
@@ -53,20 +54,15 @@ interface CommentSectionProps {
 }
 
 export function CommentSection({ 
-  artworkId, 
   comments, 
+  setComments,
   currentUser, 
-  isLoading = false,
   isSubmitting = false,
-  onAddComment,
-  onUpdateComment,
-  onDeleteComment
+  onAddComment
 }: CommentSectionProps) {
   const [newComment, setNewComment] = useState("")
   const [replyingTo, setReplyingTo] = useState<string | null>(null)
   const [replyContent, setReplyContent] = useState("")
-  const [editingComment, setEditingComment] = useState<string | null>(null)
-  const [editContent, setEditContent] = useState("")
 
   const handleSubmitComment = async () => {
     if (!newComment.trim() || !currentUser) return
@@ -91,7 +87,7 @@ export function CommentSection({
       createdAt: "刚刚"
     }
 
-    setComments(comments.map(comment => {
+    setComments?.(comments.map(comment => {
       if (comment.id === parentId) {
         return {
           ...comment,
@@ -107,7 +103,7 @@ export function CommentSection({
 
   const handleLikeComment = (commentId: string, isReply = false, parentId?: string) => {
     if (isReply && parentId) {
-      setComments(comments.map(comment => {
+      setComments?.(comments.map(comment => {
         if (comment.id === parentId) {
           return {
             ...comment,
@@ -126,7 +122,7 @@ export function CommentSection({
         return comment
       }))
     } else {
-      setComments(comments.map(comment => {
+      setComments?.(comments.map(comment => {
         if (comment.id === commentId) {
           return {
             ...comment,

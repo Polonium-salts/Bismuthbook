@@ -1,6 +1,7 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import * as React from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { User } from '@supabase/supabase-js'
 import { authService } from '../services/auth-service'
 import { UserProfile } from '../types/database'
@@ -12,7 +13,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>
   signUp: (email: string, password: string, username: string) => Promise<void>
   signOut: () => Promise<void>
-  updateProfile: (updates: any) => Promise<void>
+  updateProfile: (updates: Partial<UserProfile>) => Promise<void>
   refreshProfile: () => Promise<void>
 }
 
@@ -101,11 +102,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }
 
-  const updateProfile = async (updates: any) => {
+  const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) throw new Error('No user logged in')
     
     try {
-      const updatedProfile = await authService.updateUserProfile(user.id, updates)
+      // Convert null values to undefined for UpdateProfileData compatibility
+      const updateData = {
+        username: updates.username,
+        fullName: updates.full_name ?? undefined,
+        bio: updates.bio ?? undefined,
+        website: updates.website ?? undefined,
+        avatar_url: updates.avatar_url ?? undefined
+      }
+      
+      const updatedProfile = await authService.updateUserProfile(user.id, updateData)
       setProfile(updatedProfile)
     } catch (error) {
       throw error

@@ -4,12 +4,29 @@ import { useAuth } from '../providers/auth-provider'
 import { toast } from 'sonner'
 import { CommentWithUser } from '../types/database'
 
+// Comment type that matches CommentSection component expectations
+interface Comment {
+  id: string
+  user: {
+    name: string
+    avatar: string
+    isArtist?: boolean
+    isVerified?: boolean
+  }
+  content: string
+  likes: number
+  isLiked: boolean
+  createdAt: string
+  replies?: Comment[]
+  isEdited?: boolean
+}
+
 interface InteractionState {
   isLiked: boolean
   isFavorited: boolean
-  likeCount: number
-  viewCount: number
-  commentCount: number
+  likeCount: number | null
+  viewCount: number | null
+  commentCount: number | null
   isLoading: boolean
 }
 
@@ -140,7 +157,7 @@ function transformComment(comment: CommentWithUser) {
 // Hook for managing comments
 export function useComments(imageId?: string) {
   const { user } = useAuth()
-  const [comments, setComments] = useState<any[]>([])
+  const [comments, setComments] = useState<Comment[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -237,6 +254,11 @@ export function useComments(imageId?: string) {
   const deleteComment = useCallback(async (commentId: string) => {
     if (!user) {
       toast.error('请先登录')
+      return false
+    }
+
+    if (!imageId) {
+      toast.error('图片ID不存在')
       return false
     }
 

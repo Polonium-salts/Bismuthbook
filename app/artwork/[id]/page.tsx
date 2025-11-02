@@ -15,6 +15,7 @@ import { imageService } from "@/lib/services/image-service"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { useInteractions, useComments } from "@/lib/hooks/use-interactions"
 import { getImageUrl } from "@/lib/supabase"
+import { ImageWithUserAndStats } from "@/lib/types/database"
 
 interface ArtworkPageProps {
   params: Promise<{
@@ -24,7 +25,7 @@ interface ArtworkPageProps {
 
 export default function ArtworkPage({ params }: ArtworkPageProps) {
   const resolvedParams = use(params)
-  const [artwork, setArtwork] = useState<any>(null)
+  const [artwork, setArtwork] = useState<ImageWithUserAndStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { user, profile } = useAuth()
@@ -122,6 +123,9 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
           <ArtworkDetail 
             artwork={{
               ...artwork,
+              description: artwork.description || undefined,
+              tags: artwork.tags || [],
+              category: artwork.category || undefined,
               imageUrl: getImageUrl(artwork.image_url),
               artist: {
                 name: artwork.user_profiles.username || artwork.user_profiles.full_name || 'Unknown Artist',
@@ -130,9 +134,9 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
                 bio: artwork.user_profiles.bio || undefined,
                 followers: undefined
               },
-              likes: likeCount,
-              views: viewCount,
-              comments: commentCount,
+              likes: likeCount ?? 0,
+              views: viewCount ?? 0,
+              comments: commentCount ?? 0,
               isLiked,
               isBookmarked: isFavorited
             }}

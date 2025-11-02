@@ -1,20 +1,27 @@
 "use client"
 
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PixivGrid } from "@/components/artwork/pixiv-grid"
 import { SearchBar } from "@/components/search/search-bar"
-import { SearchFilters } from "@/components/search/search-filters"
+import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search/search-filters"
 import { useImages, usePopularImages, useCategories, usePopularTags } from "@/lib/hooks/use-images"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, Clock, Heart, Eye } from "lucide-react"
+import { TrendingUp, Clock } from "lucide-react"
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [filters, setFilters] = useState({})
+  const [filters, setFilters] = useState<SearchFiltersType>({
+    sortBy: 'created_at',
+    timeRange: 'all',
+    categories: [],
+    tags: [],
+    minLikes: 0,
+    minViews: 0
+  })
   const [viewMode, setViewMode] = useState<'popular' | 'recent' | 'search'>('popular')
   const { user } = useAuth()
 
@@ -106,14 +113,21 @@ export default function Home() {
     setSearchQuery(query)
   }, [])
 
-  const handleFiltersChange = useCallback((newFilters: any) => {
+  const handleFiltersChange = useCallback((newFilters: SearchFilters) => {
     setFilters(newFilters)
   }, [])
 
   const handleViewModeChange = useCallback((mode: 'popular' | 'recent' | 'search') => {
     setViewMode(mode)
     setSearchQuery("")
-    setFilters({})
+    setFilters({
+      sortBy: 'created_at',
+      timeRange: 'all',
+      categories: [],
+      tags: [],
+      minLikes: 0,
+      minViews: 0
+    })
   }, [])
 
   const isSearchMode = useMemo(() => 
@@ -198,7 +212,7 @@ export default function Home() {
               {isSearchMode ? (
                 <>
                   <span>搜索结果</span>
-                  {searchQuery && <Badge variant="secondary">"{searchQuery}"</Badge>}
+                  {searchQuery && <Badge variant="secondary">&quot;{searchQuery}&quot;</Badge>}
                 </>
               ) : viewMode === 'popular' ? (
                 <>

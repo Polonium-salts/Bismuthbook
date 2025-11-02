@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback, memo, useMemo } from "react"
+import { useState, useEffect, useRef, useCallback, memo } from "react"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { PixivCard } from "./pixiv-card"
 import { cn } from "@/lib/utils"
@@ -71,27 +71,6 @@ const PixivGrid = memo(function PixivGrid({
     }
   }, [onLoadMore, hasMore, isLoading])
 
-  // 获取最短列的索引
-  const getShortestColumnIndex = useCallback(() => {
-    return columnHeights.indexOf(Math.min(...columnHeights))
-  }, [columnHeights])
-
-  // 计算卡片位置
-  const getCardPosition = useCallback((index: number, cardHeight: number) => {
-    const columnIndex = getShortestColumnIndex()
-    const left = `${(columnIndex / columns) * 100}%`
-    const top = columnHeights[columnIndex]
-    
-    // 更新列高度
-    setColumnHeights(prev => {
-      const newHeights = [...prev]
-      newHeights[columnIndex] += cardHeight + 16 // 16px gap
-      return newHeights
-    })
-
-    return { left, top, columnIndex }
-  }, [columns, columnHeights, getShortestColumnIndex])
-
   return (
     <div className={cn("w-full", className)}>
       {/* Pixiv风格的瀑布流网格 */}
@@ -107,8 +86,7 @@ const PixivGrid = memo(function PixivGrid({
           <PixivCard
             key={artwork.id}
             artwork={artwork}
-            columns={columns}
-            onHeightCalculated={(height) => {
+            onHeightCalculated={() => {
               // 这里可以处理高度计算完成后的逻辑
             }}
             style={{

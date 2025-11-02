@@ -19,7 +19,6 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import { 
-  Filter, 
   SlidersHorizontal, 
   X,
   Calendar,
@@ -28,8 +27,17 @@ import {
   TrendingUp
 } from "lucide-react"
 
+export interface SearchFilters {
+  sortBy: 'created_at' | 'like_count' | 'view_count'
+  timeRange: string
+  categories: string[]
+  tags: string[]
+  minLikes: number
+  minViews: number
+}
+
 interface SearchFiltersProps {
-  onFiltersChange?: (filters: any) => void
+  onFiltersChange?: (filters: SearchFilters) => void
   categories?: string[]
   popularTags?: string[]
   loading?: boolean
@@ -41,8 +49,8 @@ export function SearchFilters({
   popularTags = [], 
   loading = false 
 }: SearchFiltersProps) {
-  const [filters, setFilters] = useState({
-    sortBy: "latest",
+  const [filters, setFilters] = useState<SearchFilters>({
+    sortBy: "created_at",
     timeRange: "all",
     categories: [] as string[],
     tags: [] as string[],
@@ -67,7 +75,7 @@ export function SearchFilters({
   const displayCategories = categories.length > 0 ? categories : defaultCategories
   const displayTags = popularTags.length > 0 ? popularTags : defaultTags
 
-  const updateFilters = (key: string, value: any) => {
+  const updateFilters = (key: keyof SearchFilters, value: SearchFilters[keyof SearchFilters]) => {
     const newFilters = { ...filters, [key]: value }
     setFilters(newFilters)
     onFiltersChange?.(newFilters)
@@ -88,8 +96,8 @@ export function SearchFilters({
   }
 
   const clearFilters = () => {
-    const defaultFilters = {
-      sortBy: "latest",
+    const defaultFilters: SearchFilters = {
+      sortBy: "created_at",
       timeRange: "all",
       categories: [],
       tags: [],
@@ -103,7 +111,7 @@ export function SearchFilters({
   const activeFiltersCount = 
     filters.categories.length + 
     filters.tags.length + 
-    (filters.sortBy !== "latest" ? 1 : 0) +
+    (filters.sortBy !== "created_at" ? 1 : 0) +
     (filters.timeRange !== "all" ? 1 : 0)
 
   return (

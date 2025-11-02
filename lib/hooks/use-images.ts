@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { imageService } from '../services/image-service'
-import { ImageWithUser } from '../types/database'
+import { ImageWithUserAndStats } from '../types/database'
 
 // Debounce utility
-function useDebounce<T extends (...args: any[]) => any>(
+function useDebounce<T extends (...args: never[]) => Promise<void>>(
   callback: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
   
   return useCallback((...args: Parameters<T>) => {
     if (timeoutRef.current) {
@@ -27,11 +27,12 @@ interface UseImagesOptions {
   category?: string
   tags?: string[]
   userId?: string
+  searchQuery?: string
   autoLoad?: boolean
 }
 
 interface UseImagesReturn {
-  images: ImageWithUser[]
+  images: ImageWithUserAndStats[]
   isLoading: boolean
   error: string | null
   hasMore: boolean
@@ -41,7 +42,7 @@ interface UseImagesReturn {
 }
 
 export function useImages(initialOptions: UseImagesOptions = {}): UseImagesReturn {
-  const [images, setImages] = useState<ImageWithUser[]>([])
+  const [images, setImages] = useState<ImageWithUserAndStats[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
@@ -56,7 +57,7 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
 
   // Track loading state to prevent duplicate requests
   const loadingRef = useRef(false)
-  const abortControllerRef = useRef<AbortController>()
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   const loadImagesInternal = useCallback(async (newOptions?: UseImagesOptions, append = false) => {
     // Prevent duplicate requests
@@ -78,10 +79,24 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
       const currentOptions = newOptions ? { ...options, ...newOptions } : options
       const currentOffset = append ? offset : 0
 
-      const data = await imageService.getImages({
-        ...currentOptions,
-        offset: currentOffset
-      }, currentOptions.userId)
+      let data: ImageWithUserAndStats[]
+      
+      // Use searchImages if searchQuery is provided, otherwise use getImages
+      if (currentOptions.searchQuery && currentOptions.searchQuery.trim()) {
+        data = await imageService.searchImages(
+          currentOptions.searchQuery.trim(),
+          {
+            ...currentOptions,
+            offset: currentOffset
+          },
+          currentOptions.userId
+        )
+      } else {
+        data = await imageService.getImages({
+          ...currentOptions,
+          offset: currentOffset
+        }, currentOptions.userId)
+      }
 
       // Check if request was aborted
       if (abortControllerRef.current?.signal.aborted) {
@@ -147,7 +162,7 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
     if (options.autoLoad) {
       loadImages()
     }
-  }, []) // Only run on mount
+  }, [options.autoLoad, loadImages])
 
   return {
     images,
@@ -162,7 +177,7 @@ export function useImages(initialOptions: UseImagesOptions = {}): UseImagesRetur
 
 // Hook for popular images
 export function usePopularImages(timeframe: 'day' | 'week' | 'month' | 'all' = 'week', limit = 20) {
-  const [images, setImages] = useState<ImageWithUser[]>([])
+  const [images, setImages] = useState<ImageWithUserAndStats[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -195,7 +210,7 @@ export function usePopularImages(timeframe: 'day' | 'week' | 'month' | 'all' = '
 
 // Hook for recent images
 export function useRecentImages(limit = 20) {
-  const [images, setImages] = useState<ImageWithUser[]>([])
+  const [images, setImages] = useState<ImageWithUserAndStats[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -228,7 +243,7 @@ export function useRecentImages(limit = 20) {
 
 // Hook for user images
 export function useUserImages(userId: string, limit = 20) {
-  const [images, setImages] = useState<ImageWithUser[]>([])
+  const [images, setImages] = useState<ImageWithUserAndStats[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasMore, setHasMore] = useState(true)
@@ -275,7 +290,7 @@ export function useUserImages(userId: string, limit = 20) {
     if (userId) {
       loadUserImages()
     }
-  }, [userId]) // Only depend on userId
+  }, [userId, loadUserImages])
 
   return {
     images,

@@ -4,11 +4,11 @@ import { LikeInsert, FavoriteInsert, CommentInsert, CommentUpdate, CommentWithUs
 // 缓存配置
 const CACHE_DURATION = 2 * 60 * 1000 // 2分钟
 const commentsCache = new Map<string, { data: CommentWithUser[], timestamp: number }>()
-const interactionStatsCache = new Map<string, { data: any, timestamp: number }>()
+const interactionStatsCache = new Map<string, { data: unknown, timestamp: number }>()
 
 class InteractionService {
   // 测试数据库连接
-  async testConnection(): Promise<{ success: boolean; message: string; details?: any }> {
+  async testConnection(): Promise<{ success: boolean; message: string; details?: unknown }> {
     try {
       // 测试基本连接
       const { data, error } = await supabase
@@ -132,7 +132,7 @@ class InteractionService {
 
         if (imageError) throw imageError
 
-        return { isLiked: false, likeCount: imageData.like_count }
+        return { isLiked: false, likeCount: imageData.like_count || 0 }
       } else {
         // Add like
         const likeData: LikeInsert = {
@@ -162,7 +162,7 @@ class InteractionService {
 
         if (imageError) throw imageError
 
-        return { isLiked: true, likeCount: imageData.like_count }
+        return { isLiked: true, likeCount: imageData.like_count || 0 }
       }
     } catch (error) {
       console.error('Error toggling like:', error)
@@ -358,10 +358,10 @@ class InteractionService {
         name: error instanceof Error ? error.name : 'UnknownError',
         stack: error instanceof Error ? error.stack : undefined,
         supabaseError: error && typeof error === 'object' ? {
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint,
-          message: (error as any).message
+          code: (error as { code?: string }).code,
+          details: (error as { details?: string }).details,
+          hint: (error as { hint?: string }).hint,
+          message: (error as { message?: string }).message
         } : undefined,
         imageId,
         limit,

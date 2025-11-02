@@ -11,7 +11,7 @@ export interface FollowUser {
   full_name: string | null
   avatar_url: string | null
   bio: string | null
-  created_at: string
+  created_at: string | null
 }
 
 // Simple in-memory cache for follow stats
@@ -259,8 +259,8 @@ class FollowService {
       if (error) {
         // 若联结选择失败，尝试回退到两步查询以提高健壮性
         // 例如某些环境下约束名不匹配导致联结失败
-        const code = (error as any)?.code
-        const message = (error as any)?.message || 'Unknown error'
+        const code = (error as { code?: string })?.code
+        const message = (error as { message?: string })?.message || 'Unknown error'
         console.warn('Primary getFollowing join failed:', { code, message })
 
         // 数据表不存在时给出更友好的提示
@@ -277,8 +277,8 @@ class FollowService {
           .range(offset, offset + limit - 1)
 
         if (idsError) {
-          const fallbackCode = (idsError as any)?.code
-          const fallbackMsg = (idsError as any)?.message || 'Unknown error'
+          const fallbackCode = (idsError as { code?: string })?.code
+          const fallbackMsg = (idsError as { message?: string })?.message || 'Unknown error'
           console.error('Fallback getFollowing ids query failed:', { fallbackCode, fallbackMsg })
           throw idsError
         }
@@ -292,8 +292,8 @@ class FollowService {
           .in('id', ids)
 
         if (profilesError) {
-          const pCode = (profilesError as any)?.code
-          const pMsg = (profilesError as any)?.message || 'Unknown error'
+          const pCode = (profilesError as { code?: string })?.code
+          const pMsg = (profilesError as { message?: string })?.message || 'Unknown error'
           console.error('Fallback getFollowing profiles query failed:', { pCode, pMsg })
           throw profilesError
         }
@@ -305,8 +305,8 @@ class FollowService {
       return data?.map(follow => follow.following).filter(Boolean) || []
     } catch (error) {
       const details = {
-        code: (error as any)?.code,
-        message: (error as any)?.message,
+        code: (error as { code?: string })?.code,
+        message: (error as { message?: string })?.message,
       }
       console.error('Error fetching following:', details)
       throw error
@@ -316,10 +316,25 @@ class FollowService {
   // 获取互相关注的用户列表
   async getMutualFollows(userId: string, limit = 20, offset = 0): Promise<FollowUser[]> {
     try {
+      // 首先获取用户关注的所有人
+      const { data: followingData, error: followingError } = await supabase
+        .from('follows')
+        .select('following_id')
+        .eq('follower_id', userId)
+
+      if (followingError) throw followingError
+
+      const followingIds = followingData?.map(f => f.following_id) || []
+      
+      if (followingIds.length === 0) {
+        return []
+      }
+
+      // 然后查找这些人中也关注了当前用户的人
       const { data, error } = await supabase
         .from('follows')
         .select(`
-          following:user_profiles!follows_following_id_fkey (
+          follower:user_profiles!follows_follower_id_fkey (
             id,
             username,
             full_name,
@@ -328,18 +343,13 @@ class FollowService {
             created_at
           )
         `)
-        .eq('follower_id', userId)
-        .in('following_id', 
-          supabase
-            .from('follows')
-            .select('follower_id')
-            .eq('following_id', userId)
-        )
+        .eq('following_id', userId)
+        .in('follower_id', followingIds)
         .range(offset, offset + limit - 1)
 
       if (error) throw error
 
-      return data?.map(follow => follow.following).filter(Boolean) || []
+      return data?.map(follow => follow.follower).filter(Boolean) || []
     } catch (error) {
       console.error('Error fetching mutual follows:', error)
       throw error

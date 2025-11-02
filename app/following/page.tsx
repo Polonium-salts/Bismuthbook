@@ -15,9 +15,10 @@ const PAGE_LIMIT = 20
 interface FollowingUser {
   id: string
   username: string
-  email: string
-  avatar_url?: string
-  bio?: string
+  full_name: string | null
+  avatar_url: string | null
+  bio: string | null
+  created_at: string | null
 }
 
 interface UserStats {
@@ -66,10 +67,10 @@ export default function FollowingPage() {
         try {
           const [followStats, userImages] = await Promise.all([
             followService.getFollowStats(followingUser.id),
-            imageService.getImagesByUserId(followingUser.id, { limit: 1000, offset: 0 }, user.id)
+            imageService.getUserImages(followingUser.id, 1000, 0)
           ])
 
-          const totalLikes = userImages.reduce((sum, img) => sum + (img.likes_count || 0), 0)
+          const totalLikes = userImages.reduce((sum, img) => sum + (img.like_count || 0), 0)
 
           return {
             userId: followingUser.id,

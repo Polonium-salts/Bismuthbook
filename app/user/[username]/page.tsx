@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
 import { MainLayout } from "@/components/layout/main-layout"
 import { UserProfileHeader } from "@/components/user/user-profile-header"
@@ -46,7 +46,7 @@ export default function UserProfilePage() {
   const [followLoading, setFollowLoading] = useState(false)
 
   // 获取用户资料
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const { data: profile, error } = await supabase
         .from('user_profiles')
@@ -75,10 +75,10 @@ export default function UserProfilePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [username, currentUser])
 
   // 获取用户统计数据
-  const fetchUserStats = async (userId: string) => {
+  const fetchUserStats = useCallback(async (userId: string) => {
     try {
       // 获取已发布作品数量
       const { count: artworksCount } = await supabase
@@ -94,7 +94,7 @@ export default function UserProfilePage() {
         .eq('user_id', userId)
         .eq('is_published', true)
 
-      const totalLikes = images?.reduce((sum, img) => sum + img.like_count, 0) || 0
+      const totalLikes = images?.reduce((sum, img) => sum + (img.like_count || 0), 0) || 0
 
       // 获取关注统计数据
       const followStats = await followService.getFollowStats(userId)
@@ -108,22 +108,17 @@ export default function UserProfilePage() {
     } catch (error) {
       console.error('Error fetching user stats:', error)
     }
-  }
+  }, [])
 
   // 获取用户作品
-  const fetchUserArtworks = async (userId: string) => {
+  const fetchUserArtworks = useCallback(async (userId: string) => {
     setArtworksLoading(true)
     try {
       const { data: artworks, error } = await supabase
         .from('images')
         .select(`
           *,
-          user_profiles!inner(
-            id,
-            username,
-            full_name,
-            avatar_url
-          )
+          user_profiles!inner(*)
         `)
         .eq('user_id', userId)
         .eq('is_published', true)
@@ -131,17 +126,25 @@ export default function UserProfilePage() {
 
       if (error) throw error
 
-      setUserArtworks(artworks || [])
+      // 为每个作品添加缺少的属性以匹配 ImageWithUserAndStats 类型
+      const artworksWithStats = artworks?.map(artwork => ({
+        ...artwork,
+        likes: [],
+        favorites: [],
+        comments: []
+      })) || []
+
+      setUserArtworks(artworksWithStats)
     } catch (error) {
       console.error('Error fetching user artworks:', error)
       toast.error('获取用户作品失败')
     } finally {
       setArtworksLoading(false)
     }
-  }
+  }, [])
 
   // 检查关注状态
-  const checkFollowStatus = async (userId: string) => {
+  const checkFollowStatus = useCallback(async (userId: string) => {
     if (!currentUser) return
 
     try {
@@ -150,7 +153,7 @@ export default function UserProfilePage() {
     } catch (error) {
       console.error('Error checking follow status:', error)
     }
-  }
+  }, [currentUser])
 
   // 关注/取消关注用户
   const handleFollowToggle = async () => {
@@ -189,7 +192,7 @@ export default function UserProfilePage() {
     if (username) {
       fetchUserProfile()
     }
-  }, [username, currentUser])
+  }, [username, fetchUserProfile])
 
   if (loading) {
     return (
@@ -244,7 +247,7 @@ export default function UserProfilePage() {
             <AlertCircle className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
             <h1 className="text-2xl font-bold mb-2">用户不存在</h1>
             <p className="text-muted-foreground mb-6">
-              抱歉，找不到用户名为 "{username}" 的用户。
+              抱歉，找不到用户名为 &quot;{username}&quot; 的用户。
             </p>
             <Button onClick={() => window.history.back()}>
               返回上一页

@@ -5,13 +5,10 @@ import Image from "next/image"
 import { MainLayout } from "@/components/layout/main-layout"
 import { ImageCard } from "@/components/image/image-card"
 import { useAuth } from "@/lib/providers/auth-provider"
-import { favoriteService } from "@/lib/services/favorite-service"
 import { imageService } from "@/lib/services/image-service"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Heart, RefreshCcw, Grid3X3, List, Eye, MessageCircle, User } from "lucide-react"
+import { Heart, RefreshCcw, Grid3X3, List } from "lucide-react"
 import { ImageWithUserAndStats } from "@/lib/types/database"
 import { supabase } from "@/lib/supabase"
 
@@ -56,11 +53,17 @@ export default function BookmarksPage() {
             view_count,
             comment_count,
             is_featured,
+            is_published,
+            published_at,
             user_profiles (
               id,
               username,
               full_name,
-              avatar_url
+              avatar_url,
+              bio,
+              created_at,
+              updated_at,
+              website
             )
           )
         `)
@@ -78,7 +81,12 @@ export default function BookmarksPage() {
           image_url: imageService.getImageUrl(fav.images.image_url), // 转换存储路径为公共 URL
           user_profiles: fav.images.user_profiles,
           is_liked: false, // 需要单独查询用户是否点赞
-          is_favorited: true // 收藏的图片默认为已收藏
+          is_favorited: true, // 收藏的图片默认为已收藏
+          likes: [], // 初始化为空数组
+          favorites: [], // 初始化为空数组
+          comments: [], // 初始化为空数组
+          is_published: fav.images.is_published ?? true, // 默认为已发布
+          published_at: fav.images.published_at // 保持原值
         })) as ImageWithUserAndStats[]
 
       if (append) {
@@ -260,9 +268,11 @@ export default function BookmarksPage() {
                     {favoriteImages.map((image) => (
                       <div key={image.id} className="flex space-x-4 p-4 border rounded-lg hover:shadow-md transition-shadow duration-200 bg-card">
                         <div className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden">
-                          <img
+                          <Image
                             src={image.image_url}
                             alt={image.title || "图片"}
+                            width={96}
+                            height={96}
                             className="w-full h-full object-cover"
                           />
                         </div>

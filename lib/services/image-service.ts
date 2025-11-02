@@ -69,10 +69,10 @@ class ImageService {
   }
 
   // Cache for frequently accessed data
-  private cache = new Map<string, { data: any; timestamp: number; ttl: number }>()
+  private cache = new Map<string, { data: unknown; timestamp: number; ttl: number }>()
   private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-  private getCacheKey(prefix: string, params: any): string {
+  private getCacheKey(prefix: string, params: Record<string, unknown>): string {
     return `${prefix}:${JSON.stringify(params)}`
   }
 
@@ -85,15 +85,15 @@ class ImageService {
     return null
   }
 
-  private setCache(key: string, data: any, ttl: number = this.CACHE_TTL): void {
+  private setCache(key: string, data: unknown, ttl: number = this.CACHE_TTL): void {
     this.cache.set(key, { data, timestamp: Date.now(), ttl })
   }
 
   // Test database connection and table structure
-  async testConnection(): Promise<{ success: boolean; error?: string; tableInfo?: any }> {
+  async testConnection(): Promise<{ success: boolean; error?: string; tableInfo?: unknown }> {
     try {
       // Test basic connection
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('images')
         .select('count(*)')
         .limit(1)
@@ -103,7 +103,7 @@ class ImageService {
       }
 
       // Get table structure info
-      const { data: tableInfo, error: tableError } = await supabase
+      const { data: tableInfo } = await supabase
         .from('images')
         .select('id, title, image_url, user_id, created_at')
         .limit(1)
@@ -130,7 +130,7 @@ class ImageService {
     if (cached) return cached
 
     const maxRetries = 3
-    let lastError: any
+    let lastError: unknown
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -149,12 +149,18 @@ class ImageService {
             view_count,
             comment_count,
             is_featured,
+            is_published,
+            published_at,
             created_at,
             user_profiles!inner (
               id,
               username,
               avatar_url,
-              full_name
+              full_name,
+              bio,
+              website,
+              created_at,
+              updated_at
             )
           `)
 
@@ -190,6 +196,7 @@ class ImageService {
         if (error) throw error
 
         // Get user interactions in a separate optimized query if userId is provided
+        // eslint-disable-next-line prefer-const
         let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
         if (userId && data && data.length > 0) {
           const imageIds = data.map(img => img.id)
@@ -216,7 +223,10 @@ class ImageService {
           ...image,
           image_url: this.getImageUrl(image.image_url),
           is_liked: userInteractions.likes.includes(image.id),
-          is_favorited: userInteractions.favorites.includes(image.id)
+          is_favorited: userInteractions.favorites.includes(image.id),
+          likes: [],
+          favorites: [],
+          comments: []
         })) || []
 
         // Cache the result
@@ -232,10 +242,10 @@ class ImageService {
           name: error instanceof Error ? error.name : 'UnknownError',
           stack: error instanceof Error ? error.stack : undefined,
           supabaseError: error && typeof error === 'object' && 'code' in error ? {
-            code: (error as any).code,
-            details: (error as any).details,
-            hint: (error as any).hint,
-            message: (error as any).message
+            code: (error as { code?: string }).code,
+            details: (error as { details?: string }).details,
+            hint: (error as { hint?: string }).hint,
+            message: (error as { message?: string }).message
           } : undefined,
           filters,
           userId,
@@ -260,7 +270,7 @@ class ImageService {
   // Get popular images (trending) - optimized with caching
   async getPopularImages(limit = 20, timeframe: 'day' | 'week' | 'month' | 'all' = 'week') {
     const cacheKey = this.getCacheKey('popular', { limit, timeframe })
-    const cached = this.getFromCache<any[]>(cacheKey)
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
     if (cached) return cached
 
     try {
@@ -279,12 +289,18 @@ class ImageService {
           view_count,
           comment_count,
           is_featured,
+          is_published,
+          published_at,
           created_at,
           user_profiles!inner (
             id,
             username,
             avatar_url,
-            full_name
+            full_name,
+            bio,
+            website,
+            created_at,
+            updated_at
           )
         `)
         .eq('is_published', true)
@@ -321,13 +337,18 @@ class ImageService {
 
       // Convert storage paths to public URLs and calculate popularity score
       const processedData = data?.map(image => {
-        const ageInDays = (Date.now() - new Date(image.created_at).getTime()) / (1000 * 60 * 60 * 24)
-        const popularityScore = (image.like_count * 3 + image.view_count * 0.1 + image.comment_count * 2) / Math.max(1, ageInDays * 0.1)
+        const ageInDays = (Date.now() - new Date(image.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)
+        const popularityScore = ((image.like_count || 0) * 3 + (image.view_count || 0) * 0.1 + (image.comment_count || 0) * 2) / Math.max(1, ageInDays * 0.1)
         
         return {
           ...image,
           image_url: this.getImageUrl(image.image_url),
-          popularity_score: popularityScore
+          popularity_score: popularityScore,
+          likes: [],
+          favorites: [],
+          comments: [],
+          is_liked: false,
+          is_favorited: false
         }
       }).sort((a, b) => b.popularity_score - a.popularity_score) || []
 
@@ -368,12 +389,18 @@ class ImageService {
           view_count,
           comment_count,
           is_featured,
+          is_published,
+          published_at,
           created_at,
           user_profiles!inner (
             id,
             username,
             avatar_url,
-            full_name
+            full_name,
+            bio,
+            website,
+            created_at,
+            updated_at
           )
         `)
         .in('user_id', userIds)
@@ -392,6 +419,7 @@ class ImageService {
       if (error) throw error
 
       // Get user interactions if current userId provided
+      // eslint-disable-next-line prefer-const
       let userInteractions: { likes: string[]; favorites: string[] } = { likes: [], favorites: [] }
       if (userId && data && data.length > 0) {
         const imageIds = data.map(img => img.id)
@@ -417,7 +445,10 @@ class ImageService {
         ...image,
         image_url: this.getImageUrl(image.image_url),
         is_liked: userInteractions.likes.includes(image.id),
-        is_favorited: userInteractions.favorites.includes(image.id)
+        is_favorited: userInteractions.favorites.includes(image.id),
+        likes: [],
+        favorites: [],
+        comments: []
       })) || []
 
       this.setCache(cacheKey, processedData)
@@ -431,7 +462,7 @@ class ImageService {
   // Get recent images - optimized with caching
   async getRecentImages(limit = 20) {
     const cacheKey = this.getCacheKey('recent', { limit })
-    const cached = this.getFromCache<any[]>(cacheKey)
+    const cached = this.getFromCache<ImageWithUserAndStats[]>(cacheKey)
     if (cached) return cached
 
     try {
@@ -449,12 +480,18 @@ class ImageService {
           view_count,
           comment_count,
           is_featured,
+          is_published,
+          published_at,
           created_at,
           user_profiles!inner (
             id,
             username,
             avatar_url,
-            full_name
+            full_name,
+            bio,
+            website,
+            created_at,
+            updated_at
           )
         `)
         .eq('is_published', true)
@@ -466,7 +503,12 @@ class ImageService {
       // Convert storage paths to public URLs
       const processedData = data?.map(image => ({
         ...image,
-        image_url: this.getImageUrl(image.image_url)
+        image_url: this.getImageUrl(image.image_url),
+        likes: [],
+        favorites: [],
+        comments: [],
+        is_liked: false,
+        is_favorited: false
       })) || []
 
       // Cache with shorter TTL for recent content (1 minute)
@@ -686,10 +728,11 @@ class ImageService {
       const processedData = {
         ...data,
         image_url: this.getImageUrl(data.image_url), // Convert storage path to public URL
-        is_liked: userId ? data.likes.some((like: any) => like.user_id === userId) : false,
-        is_favorited: userId ? data.favorites.some((fav: any) => fav.user_id === userId) : false,
-        likes: undefined,
-        favorites: undefined
+        is_liked: userId ? data.likes.some((like: { user_id: string }) => like.user_id === userId) : false,
+        is_favorited: userId ? data.favorites.some((fav: { user_id: string }) => fav.user_id === userId) : false,
+        likes: [],
+        favorites: [],
+        comments: []
       }
 
       return processedData as ImageWithUserAndStats
@@ -807,7 +850,7 @@ class ImageService {
   }
 
   // Get user's images
-  async getUserImages(userId: string, limit = 20, offset = 0): Promise<ImageWithUser[]> {
+  async getUserImages(userId: string, limit = 20, offset = 0): Promise<ImageWithUserAndStats[]> {
     try {
       const { data, error } = await supabase
         .from('images')
@@ -821,13 +864,18 @@ class ImageService {
 
       if (error) throw error
 
-      // Convert storage paths to public URLs
+      // Convert storage paths to public URLs and add empty stats arrays
       const processedData = data?.map(image => ({
         ...image,
-        image_url: this.getImageUrl(image.image_url)
+        image_url: this.getImageUrl(image.image_url),
+        likes: [],
+        favorites: [],
+        comments: [],
+        is_liked: false,
+        is_favorited: false
       })) || []
 
-      return processedData as ImageWithUser[]
+      return processedData as ImageWithUserAndStats[]
     } catch (error) {
       console.error('Error fetching user images:', error)
       throw error
@@ -874,10 +922,11 @@ class ImageService {
       const processedData = data?.map(image => ({
         ...image,
         image_url: this.getImageUrl(image.image_url), // Convert storage path to public URL
-        is_liked: userId ? image.likes.some((like: any) => like.user_id === userId) : false,
-        is_favorited: userId ? image.favorites.some((fav: any) => fav.user_id === userId) : false,
-        likes: undefined,
-        favorites: undefined
+        is_liked: userId ? image.likes.some((like: { user_id: string }) => like.user_id === userId) : false,
+        is_favorited: userId ? image.favorites.some((fav: { user_id: string }) => fav.user_id === userId) : false,
+        likes: [],
+        favorites: [],
+        comments: []
       })) || []
 
       return processedData as ImageWithUserAndStats[]

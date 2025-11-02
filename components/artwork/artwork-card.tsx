@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Heart, Bookmark, Eye, MessageCircle } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -39,7 +40,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
     try {
       await toggleLike()
       toast.success(isLiked ? "取消点赞" : "点赞成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -56,7 +57,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
     try {
       await toggleFavorite()
       toast.success(isFavorited ? "取消收藏" : "收藏成功")
-    } catch (error) {
+    } catch {
       toast.error("操作失败，请重试")
     }
   }
@@ -73,9 +74,11 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
         <CardContent className="p-0">
           {/* Image Container */}
           <div className="relative aspect-[3/4] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200 rounded-t-xl">
-            <img
-              src={artwork.url}
+            <Image
+              src={artwork.image_url || artwork.url || '/placeholder-image.jpg'}
               alt={artwork.title}
+              width={400}
+              height={533}
               className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700 ease-out"
             />
             
@@ -140,7 +143,7 @@ export function ArtworkCard({ artwork, className }: ArtworkCardProps) {
             {/* Artist info */}
             <div className="flex items-center space-x-3">
               <Avatar className="h-7 w-7 ring-2 ring-white shadow-sm">
-                <AvatarImage src={artwork.user_profiles?.avatar_url} alt={artwork.user_profiles?.full_name || artwork.user_profiles?.username} />
+                <AvatarImage src={artwork.user_profiles?.avatar_url || undefined} alt={artwork.user_profiles?.full_name || artwork.user_profiles?.username} />
                 <AvatarFallback className="text-xs bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
                   {(artwork.user_profiles?.full_name || artwork.user_profiles?.username || 'U').charAt(0)}
                 </AvatarFallback>

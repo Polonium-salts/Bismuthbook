@@ -14,9 +14,9 @@ interface UserCardProps {
   user: {
     id: string
     username: string
-    email: string
-    avatar_url?: string
-    bio?: string
+    email?: string
+    avatar_url?: string | null
+    bio?: string | null
   }
   stats?: {
     followers: number
@@ -67,7 +67,7 @@ export function UserCard({ user, stats, isFollowing = false, onFollowChange }: U
           {/* Avatar */}
           <Link href={`/user/${user.username}`}>
             <Avatar className="w-12 h-12 cursor-pointer hover:opacity-80 transition-opacity">
-              <AvatarImage src={user.avatar_url} alt={user.username} />
+              <AvatarImage src={user.avatar_url || undefined} alt={user.username} />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white font-medium">
                 {getInitials(user.username)}
               </AvatarFallback>
