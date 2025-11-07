@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { MainLayout } from "@/components/layout/main-layout"
 import { YouTubeSearchFilters } from "@/components/search/youtube-search-filters"
@@ -12,12 +12,12 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialQuery = searchParams.get("q") || ""
   
-  const [searchQuery, setSearchQuery] = useState(initialQuery)
+  const [searchQuery] = useState(initialQuery)
   const [sortBy, setSortBy] = useState<'created_at' | 'like_count' | 'view_count'>('created_at')
   const [timeRange, setTimeRange] = useState<string>('all')
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -159,8 +159,6 @@ export default function SearchPage() {
           </div>
         )}
 
-
-
         {/* YouTube 风格的搜索结果 */}
         {!isLoading && searchResults.length > 0 && (
           <YouTubeSearchResults
@@ -194,5 +192,34 @@ export default function SearchPage() {
         )}
       </div>
     </MainLayout>
+  )
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <MainLayout>
+        <div className="space-y-4">
+          <div className="flex items-center gap-4">
+            <Skeleton className="h-10 w-10 rounded-full" />
+          </div>
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-4">
+                <Skeleton className="w-60 h-36 rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </MainLayout>
+    }>
+      <SearchPageContent />
+    </Suspense>
   )
 }

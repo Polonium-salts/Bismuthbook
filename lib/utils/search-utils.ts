@@ -240,8 +240,10 @@ export function sortSearchResults<T extends { created_at: string; like_count: nu
       
       case 'relevance':
         if (relevanceScores) {
-          const scoreA = relevanceScores.get((a as any).id) || 0
-          const scoreB = relevanceScores.get((b as any).id) || 0
+          const itemA = a as unknown as { id: string }
+          const itemB = b as unknown as { id: string }
+          const scoreA = relevanceScores.get(itemA.id) || 0
+          const scoreB = relevanceScores.get(itemB.id) || 0
           return scoreB - scoreA
         }
         return 0

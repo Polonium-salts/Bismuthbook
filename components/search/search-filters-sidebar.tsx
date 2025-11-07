@@ -183,7 +183,7 @@ export function SearchFiltersSidebar({
             </div>
             <Slider
               value={[minLikes]}
-              onValueChange={(values) => onMinLikesChange(values[0])}
+              onValueChange={(values: number[]) => onMinLikesChange(values[0])}
               max={1000}
               step={10}
               className="w-full"
@@ -205,7 +205,7 @@ export function SearchFiltersSidebar({
             </div>
             <Slider
               value={[minViews]}
-              onValueChange={(values) => onMinViewsChange(values[0])}
+              onValueChange={(values: number[]) => onMinViewsChange(values[0])}
               max={10000}
               step={100}
               className="w-full"
