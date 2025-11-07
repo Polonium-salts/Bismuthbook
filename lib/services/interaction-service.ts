@@ -37,7 +37,7 @@ class InteractionService {
           recordCount: data?.length || 0
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: 'Connection test failed',
@@ -49,7 +49,7 @@ class InteractionService {
     }
   }
 
-  // 私有方法：缓存相关
+  // 私有方法：缓存相关键生成
   private getCacheKey(prefix: string, ...params: string[]): string {
     return `${prefix}:${params.join(':')}`
   }
@@ -164,7 +164,7 @@ class InteractionService {
 
         return { isLiked: true, likeCount: imageData.like_count || 0 }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error toggling like:', error)
       throw error
     }
@@ -215,7 +215,7 @@ class InteractionService {
 
         return { isFavorited: true }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error toggling favorite:', error)
       throw error
     }
@@ -240,7 +240,7 @@ class InteractionService {
       if (error) throw error
 
       return data?.map(like => like.images) || []
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching liked images:', error)
       throw error
     }
@@ -265,7 +265,7 @@ class InteractionService {
       if (error) throw error
 
       return data?.map(favorite => favorite.images) || []
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error fetching favorited images:', error)
       throw error
     }
@@ -302,7 +302,7 @@ class InteractionService {
       this.clearRelatedCache(imageId)
 
       return data as CommentWithUser
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error adding comment:', error)
       throw error
     }
@@ -352,7 +352,7 @@ class InteractionService {
       }
 
       return comments
-    } catch (error) {
+    } catch (error: unknown) {
       const errorDetails = {
         message: error instanceof Error ? error.message : 'Unknown error',
         name: error instanceof Error ? error.name : 'UnknownError',
@@ -417,7 +417,7 @@ class InteractionService {
       this.clearRelatedCache(commentData.image_id)
 
       return data as CommentWithUser
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating comment:', error)
       throw error
     }
@@ -438,7 +438,7 @@ class InteractionService {
 
       // 清理相关缓存
       this.clearRelatedCache(imageId)
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error deleting comment:', error)
       throw error
     }
@@ -460,7 +460,7 @@ class InteractionService {
       }
 
       return Array.isArray(data) && data.length > 0
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error checking if user liked image:', error)
       return false
     }
@@ -482,7 +482,7 @@ class InteractionService {
       }
 
       return Array.isArray(data) && data.length > 0
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error checking if user favorited image:', error)
       return false
     }
@@ -523,7 +523,7 @@ class InteractionService {
         isLiked,
         isFavorited
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error getting image stats:', error)
       throw error
     }
