@@ -220,33 +220,6 @@ export function Sidebar({ className, isCollapsed = false }: SidebarProps) {
       </main>
 
       {/* 底部设置 */}
-      <footer className={cn("pt-4 border-t border-sidebar-border transition-all duration-300", isCollapsed ? "px-4" : "px-4")}> 
-        <Button
-          variant="ghost"
-          className={cn(
-            "transition-all duration-200 text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-            isCollapsed 
-              ? "w-12 h-12 p-0 rounded-xl mx-auto" 
-              : "w-full h-10 justify-start rounded-lg px-3"
-          )}
-        >
-          <Settings className={cn("transition-all duration-200", isCollapsed ? "h-5 w-5" : "h-4 w-4 mr-3")} />
-          <AnimatePresence initial={false}>
-            {!isCollapsed && (
-              <motion.span
-                key="settings-label"
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -8 }}
-                transition={{ duration: 0.18, ease: "easeOut" }}
-                className="font-medium text-sm"
-              >
-                设置
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Button>
-      </footer>
     </aside>
   )
 }

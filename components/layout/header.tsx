@@ -1,5 +1,7 @@
 "use client"
 
+import { useState, useCallback } from "react"
+import { useRouter } from "next/navigation"
 import { Search, Bell, Menu, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -15,6 +17,21 @@ interface HeaderProps {
 
 export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
   const { user } = useAuth()
+  const router = useRouter()
+  const [searchQuery, setSearchQuery] = useState("")
+
+  const handleSearch = useCallback((e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+    }
+  }, [searchQuery, router])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch(e as unknown as React.FormEvent)
+    }
+  }, [handleSearch])
 
   return (
     <header className="fixed top-0 z-50 w-full bg-background/95 backdrop-blur-md border-b border-border shadow-sm">
@@ -53,17 +70,21 @@ export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
           </Link>
         </div>
 
-        {/* 中间区域：搜索栏 */}
-        <div className="flex-1 max-w-2xl mx-4 sm:mx-8">
+        {/* 中间区域：搜索栏 - YouTube 风格 */}
+        <form onSubmit={handleSearch} className="flex-1 max-w-2xl mx-4 sm:mx-8">
           <div className="relative group">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors duration-300" />
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors duration-300 pointer-events-none" />
             <Input
+              type="text"
               placeholder="搜索作品、艺术家..."
-              className="w-full pl-12 pr-4 py-3 bg-muted/50 border-border rounded-2xl focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-sm placeholder:text-muted-foreground/70 hover:bg-muted/70"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full pl-12 pr-4 py-3 bg-muted/50 border-border rounded-2xl focus:bg-background focus:border-primary/50 focus:ring-2 focus:ring-primary/20 transition-all duration-300 text-sm placeholder:text-muted-foreground/70 hover:bg-muted/70 cursor-text"
             />
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-primary/5 to-primary/10 opacity-0 group-focus-within:opacity-100 transition-opacity duration-300 pointer-events-none" />
           </div>
-        </div>
+        </form>
 
         {/* 右侧区域：通知 + 用户菜单 */}
         <div className="flex items-center space-x-2">

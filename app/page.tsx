@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback } from "react"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PixivGrid } from "@/components/artwork/pixiv-grid"
-import { SearchBar } from "@/components/search/search-bar"
 import { SearchFilters, type SearchFilters as SearchFiltersType } from "@/components/search/search-filters"
 import { useImages, usePopularImages, useCategories, usePopularTags } from "@/lib/hooks/use-images"
 import { useAuth } from "@/lib/providers/auth-provider"
@@ -110,7 +109,8 @@ export default function Home() {
   const { images, isLoading, error, loadMore, hasMore, refresh } = getDisplayData()
 
   const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query)
+    // 导航到搜索页面
+    window.location.href = `/search?q=${encodeURIComponent(query)}`
   }, [])
 
   const handleFiltersChange = useCallback((newFilters: SearchFilters) => {
@@ -153,11 +153,6 @@ export default function Home() {
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 探索来自全球艺术家的精彩作品，发现无限创意灵感
               </p>
-            </div>
-            
-            {/* 搜索栏 */}
-            <div className="max-w-2xl mx-auto">
-              <SearchBar onSearch={handleSearch} />
             </div>
             
             {/* 筛选器 */}
