@@ -292,8 +292,8 @@ export default function TestNotificationsPage() {
               <CardTitle>使用说明</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>1. 点击"快速测试"按钮可以快速创建预设的测试通知</p>
-              <p>2. 使用"自定义通知"可以创建自定义内容的通知</p>
+              <p>1. 点击&ldquo;快速测试&rdquo;按钮可以快速创建预设的测试通知</p>
+              <p>2. 使用&ldquo;自定义通知&rdquo;可以创建自定义内容的通知</p>
               <p>3. 创建的通知会立即显示在 Header 的通知图标中</p>
               <p>4. 点击通知图标可以查看通知列表</p>
               <p>5. 访问 /notifications 页面可以查看完整的通知列表</p>

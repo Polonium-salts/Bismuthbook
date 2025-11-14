@@ -1,11 +1,12 @@
 import { supabase } from '../supabase'
 import { Notification, NotificationType } from '../types/notification'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 class NotificationService {
   // 获取用户的通知列表
   async getNotifications(userId: string, limit = 20, offset = 0) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as SupabaseClient)
         .from('notifications')
         .select('*')
         .eq('user_id', userId)
@@ -25,7 +26,7 @@ class NotificationService {
         return []
       }
       return data as Notification[]
-    } catch (error) {
+    } catch {
       // 完全静默，只返回空数组
       return []
     }
@@ -34,7 +35,7 @@ class NotificationService {
   // 获取未读通知数量
   async getUnreadCount(userId: string): Promise<number> {
     try {
-      const { count, error } = await (supabase as any)
+      const { count, error } = await (supabase as SupabaseClient)
         .from('notifications')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId)
@@ -45,7 +46,7 @@ class NotificationService {
         return 0
       }
       return count || 0
-    } catch (error) {
+    } catch {
       // 静默返回 0
       return 0
     }
@@ -54,7 +55,7 @@ class NotificationService {
   // 标记通知为已读
   async markAsRead(notificationId: string) {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as SupabaseClient)
         .from('notifications')
         .update({ read: true })
         .eq('id', notificationId)
@@ -69,7 +70,7 @@ class NotificationService {
   // 标记所有通知为已读
   async markAllAsRead(userId: string) {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as SupabaseClient)
         .from('notifications')
         .update({ read: true })
         .eq('user_id', userId)
@@ -85,7 +86,7 @@ class NotificationService {
   // 删除通知
   async deleteNotification(notificationId: string) {
     try {
-      const { error } = await (supabase as any)
+      const { error } = await (supabase as SupabaseClient)
         .from('notifications')
         .delete()
         .eq('id', notificationId)
@@ -120,7 +121,7 @@ class NotificationService {
         actorName: options?.actorName
       })
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as SupabaseClient)
         .from('notifications')
         .insert({
           user_id: userId,
@@ -156,7 +157,7 @@ class NotificationService {
         throw error
       }
       return data as Notification
-    } catch (error) {
+    } catch {
       // 静默处理，不抛出错误
       if (process.env.NODE_ENV === 'development') {
         console.warn('💡 Notification creation skipped')
@@ -179,7 +180,7 @@ class NotificationService {
     imageUrl?: string
   }>) {
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await (supabase as SupabaseClient)
         .from('notifications')
         .insert(
           notifications.map(n => ({
@@ -209,7 +210,7 @@ class NotificationService {
         throw error
       }
       return data as Notification[]
-    } catch (error) {
+    } catch {
       // 静默处理，不抛出错误
       if (process.env.NODE_ENV === 'development') {
         console.warn('💡 Bulk notification creation skipped')
