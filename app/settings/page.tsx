@@ -14,12 +14,14 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Separator } from '@/components/ui/separator'
 import { Upload, Save, Loader2, User, Bell, Shield, Palette } from 'lucide-react'
 import { useAuth } from '@/lib/providers/auth-provider'
+import { useTheme } from '@/lib/providers/theme-provider'
 import { authService } from '@/lib/services/auth-service'
 import { settingsService, UserSettings, UserSettingsUpdate } from '@/lib/services/settings-service'
 import { toast } from 'sonner'
 
 export default function SettingsPage() {
   const { user, profile: userProfile, refreshProfile } = useAuth()
+  const { theme, setTheme } = useTheme()
   const [loading, setLoading] = useState(false)
   const [settings, setSettings] = useState<UserSettings | null>(null)
   const [profileData, setProfileData] = useState({
@@ -48,6 +50,12 @@ export default function SettingsPage() {
         // 加载用户设置
         const userSettings = await settingsService.getUserSettings(user.id)
         setSettings(userSettings)
+        
+        // 同步主题设置到 ThemeProvider
+        // 优先使用数据库中的设置，如果没有则使用当前主题
+        if (userSettings.theme && userSettings.theme !== theme) {
+          setTheme(userSettings.theme)
+        }
         
         // 加载用户资料
         if (userProfile) {
@@ -633,10 +641,12 @@ export default function SettingsPage() {
                 <div className="space-y-3">
                   <Label>主题</Label>
                   <Select
-                    value={settings?.theme || 'system'}
-                    onValueChange={(value) => 
-                      handleSaveSettings({ theme: value as 'light' | 'dark' | 'system' })
-                    }
+                    value={theme}
+                    onValueChange={(value) => {
+                      const newTheme = value as 'light' | 'dark' | 'system'
+                      setTheme(newTheme)
+                      handleSaveSettings({ theme: newTheme })
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -647,6 +657,13 @@ export default function SettingsPage() {
                       <SelectItem value="system">跟随系统</SelectItem>
                     </SelectContent>
                   </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {theme === 'system' 
+                      ? '主题将跟随您的系统设置自动切换' 
+                      : theme === 'dark' 
+                        ? '使用深色主题保护您的眼睛' 
+                        : '使用浅色主题获得清晰的视觉体验'}
+                  </p>
                 </div>
 
                 <div className="space-y-3">

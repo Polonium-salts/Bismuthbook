@@ -140,6 +140,7 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
               isLiked,
               isBookmarked: isFavorited
             }}
+            currentUserUsername={profile?.username || undefined}
             onLike={toggleLike}
             onBookmark={toggleFavorite}
           />

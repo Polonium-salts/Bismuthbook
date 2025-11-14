@@ -51,13 +51,17 @@ interface ArtworkDetailProps {
     software?: string[]
     category?: string
   }
+  currentUserUsername?: string
   onLike?: () => void
   onBookmark?: () => void
 }
 
-export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProps) {
+export function ArtworkDetail({ artwork, currentUserUsername, onLike, onBookmark }: ArtworkDetailProps) {
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
+  
+  // 检查当前用户是否是作品作者
+  const isOwnArtwork = currentUserUsername && artwork.artist.username && currentUserUsername === artwork.artist.username
 
   const handleLike = () => {
     if (onLike) {
@@ -237,9 +241,11 @@ export function ArtworkDetail({ artwork, onLike, onBookmark }: ArtworkDetailProp
                   </p>
                 )}
               </div>
-              <Button variant="outline" size="sm">
-                关注
-              </Button>
+              {!isOwnArtwork && (
+                <Button variant="outline" size="sm">
+                  关注
+                </Button>
+              )}
             </div>
             {artwork.artist.bio && (
               <p className="text-sm text-muted-foreground">{artwork.artist.bio}</p>

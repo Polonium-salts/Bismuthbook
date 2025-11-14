@@ -6,8 +6,9 @@ import { Search, Bell, Menu, Sparkles } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { UserMenu } from "@/components/auth/user-menu"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
+import { NotificationDropdown } from "@/components/notifications/notification-dropdown"
 import { useAuth } from "@/lib/providers/auth-provider"
 
 interface HeaderProps {
@@ -86,24 +87,11 @@ export function Header({ onMenuClick, onMobileMenuClick }: HeaderProps) {
           </div>
         </form>
 
-        {/* 右侧区域：通知 + 用户菜单 */}
+        {/* 右侧区域：主题切换 + 通知 + 用户菜单 */}
         <div className="flex items-center space-x-2">
-          {user && (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              className="relative hover:bg-accent hover:text-accent-foreground rounded-xl transition-all duration-300 group"
-            >
-              <Bell className="h-5 w-5 group-hover:animate-pulse" />
-              <Badge 
-                variant="destructive" 
-                className="absolute -top-1 -right-1 h-4 w-4 rounded-full p-0 text-xs bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg border-2 border-background animate-pulse hover:animate-bounce"
-              >
-                3
-              </Badge>
-              <div className="absolute inset-0 rounded-xl bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Button>
-          )}
+          <ThemeToggle />
+          
+          {user && <NotificationDropdown />}
           
           <UserMenu />
         </div>

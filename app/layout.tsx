@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { AuthProvider } from "../lib/providers/auth-provider";
 import { SidebarStateProvider } from "../lib/providers/sidebar-state-provider";
+import { ThemeProvider } from "../lib/providers/theme-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,20 +27,39 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
+      <head>
+        <meta name="theme-color" content="#ffffff" />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  const theme = localStorage.getItem('theme') || 'system';
+                  const systemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  const resolvedTheme = theme === 'system' ? systemTheme : theme;
+                  document.documentElement.classList.add(resolvedTheme);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
-          <SidebarStateProvider>
-            {children}
-            <Toaster 
-              position="top-right"
-              richColors
-              closeButton
-            />
-          </SidebarStateProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <SidebarStateProvider>
+              {children}
+              <Toaster 
+                position="top-right"
+                richColors
+                closeButton
+              />
+            </SidebarStateProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

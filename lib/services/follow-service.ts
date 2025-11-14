@@ -97,6 +97,35 @@ class FollowService {
 
       if (insertError) throw insertError
 
+      // 创建关注通知
+      try {
+        // 获取关注者信息
+        const { data: followerData } = await supabase
+          .from('user_profiles')
+          .select('username, full_name, avatar_url')
+          .eq('id', followerId)
+          .single()
+
+        if (followerData) {
+          const { createFollowNotification } = await import('../utils/notification-helpers')
+          await createFollowNotification(
+            followingId,
+            followerId,
+            followerData.full_name || followerData.username || '匿名用户',
+            followerData.avatar_url || '',
+            followerData.username || followerId
+          )
+          console.log('✅ Follow notification created successfully')
+        }
+      } catch (notifError) {
+        // 显示详细错误信息以便调试
+        console.error('❌ Failed to create follow notification:', notifError)
+        console.error('Error details:', {
+          message: notifError instanceof Error ? notifError.message : 'Unknown error',
+          stack: notifError instanceof Error ? notifError.stack : undefined
+        })
+      }
+
       // 更新缓存
       this.setCache(this.followStatusCache, cacheKey, true)
       

@@ -156,11 +156,46 @@ class InteractionService {
         // Get updated like count
         const { data: imageData, error: imageError } = await supabase
           .from('images')
-          .select('like_count')
+          .select('like_count, user_id, image_url')
           .eq('id', imageId)
           .single()
 
         if (imageError) throw imageError
+
+        // 创建点赞通知
+        try {
+          // 只在点赞者不是作品作者时发送通知
+          if (imageData.user_id !== userId) {
+            // 获取点赞者信息
+            const { data: userData } = await supabase
+              .from('user_profiles')
+              .select('username, full_name, avatar_url')
+              .eq('id', userId)
+              .single()
+
+            if (userData) {
+              const { createLikeNotification } = await import('../utils/notification-helpers')
+              await createLikeNotification(
+                imageData.user_id,
+                userId,
+                userData.username || userData.full_name || '匿名用户',
+                userData.avatar_url || '',
+                imageId,
+                imageData.image_url
+              )
+              console.log('✅ Like notification created successfully')
+            }
+          } else {
+            console.log('ℹ️ Skipping notification: user liked their own artwork')
+          }
+        } catch (notifError) {
+          // 显示详细错误信息以便调试
+          console.error('❌ Failed to create like notification:', notifError)
+          console.error('Error details:', {
+            message: notifError instanceof Error ? notifError.message : 'Unknown error',
+            stack: notifError instanceof Error ? notifError.stack : undefined
+          })
+        }
 
         return { isLiked: true, likeCount: imageData.like_count || 0 }
       }
@@ -295,6 +330,41 @@ class InteractionService {
         .single()
 
       if (error) throw error
+
+      // 创建评论通知
+      try {
+        // 获取作品信息
+        const { data: imageData } = await supabase
+          .from('images')
+          .select('user_id, image_url, title')
+          .eq('id', imageId)
+          .single()
+
+        // 只在评论者不是作品作者时发送通知
+        if (imageData && imageData.user_id !== userId) {
+          const { createCommentNotification } = await import('../utils/notification-helpers')
+          await createCommentNotification(
+            imageData.user_id,
+            userId,
+            data.user_profiles.username || data.user_profiles.full_name || '匿名用户',
+            data.user_profiles.avatar_url || '',
+            imageId,
+            imageData.image_url,
+            content,
+            data.id
+          )
+          console.log('✅ Comment notification created successfully')
+        } else if (imageData && imageData.user_id === userId) {
+          console.log('ℹ️ Skipping notification: user commented on their own artwork')
+        }
+      } catch (notifError) {
+        // 显示详细错误信息以便调试
+        console.error('❌ Failed to create comment notification:', notifError)
+        console.error('Error details:', {
+          message: notifError instanceof Error ? notifError.message : 'Unknown error',
+          stack: notifError instanceof Error ? notifError.stack : undefined
+        })
+      }
 
       // 注：评论数更新交由数据库触发器处理；不再额外调用 RPC
 

@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { User, AlertCircle, Settings } from "lucide-react"
 import { toast } from "sonner"
+import { AuthModal } from "@/components/auth/auth-modal"
 
 interface UserStats {
   artworks: number
@@ -39,6 +40,8 @@ export default function ProfilePage() {
   const [artworksLoading, setArtworksLoading] = useState(false)
   const [likedLoading, setLikedLoading] = useState(false)
   const [favoritesLoading, setFavoritesLoading] = useState(false)
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authMode, setAuthMode] = useState<"login" | "register">("login")
 
   // 当用户状态改变时，获取用户资料
   useEffect(() => {
@@ -264,14 +267,20 @@ export default function ProfilePage() {
             </p>
             <div className="space-y-3">
               <Button 
-                onClick={() => router.push('/?auth=login')} 
+                onClick={() => {
+                  setAuthMode("login")
+                  setShowAuthModal(true)
+                }} 
                 className="w-full"
               >
                 登录账号
               </Button>
               <Button 
                 variant="outline" 
-                onClick={() => router.push('/?auth=register')}
+                onClick={() => {
+                  setAuthMode("register")
+                  setShowAuthModal(true)
+                }}
                 className="w-full"
               >
                 注册新账号
@@ -279,6 +288,11 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          defaultMode={authMode}
+        />
       </MainLayout>
     )
   }

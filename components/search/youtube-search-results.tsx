@@ -27,8 +27,12 @@ interface SearchResult {
   description?: string | null
   image_url: string
   user_id: string
-  username?: string | null
-  user_avatar?: string | null
+  user_profiles?: {
+    id: string
+    username?: string | null
+    avatar_url?: string | null
+    full_name?: string | null
+  }
   created_at: string | null
   view_count: number | null
   like_count: number | null
@@ -119,11 +123,11 @@ function ListResultCard({ result }: { result: SearchResult }) {
   const timeAgo = result.created_at ? getTimeAgo(result.created_at) : '未知时间'
 
   return (
-    <div className="flex gap-4 group hover:bg-gray-50 p-2 rounded-lg transition-colors">
+    <div className="flex gap-4 group hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors">
       {/* 缩略图 - YouTube 风格 */}
       <Link 
         href={`/artwork/${result.id}`}
-        className="relative flex-shrink-0 w-60 h-36 bg-gray-100 rounded-lg overflow-hidden"
+        className="relative flex-shrink-0 w-60 h-36 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
       >
         <Image
           src={result.image_url}
@@ -163,20 +167,34 @@ function ListResultCard({ result }: { result: SearchResult }) {
             </div>
 
             {/* 作者信息 */}
-            <Link 
-              href={`/user/${result.user_id}`}
-              className="flex items-center gap-2 mt-3 hover:text-blue-600 transition-colors"
-            >
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={result.user_avatar || undefined} />
-                <AvatarFallback>
-                  <User className="h-3 w-3" />
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-sm font-medium">
-                {result.username || '匿名用户'}
-              </span>
-            </Link>
+            {result.user_profiles?.username ? (
+              <Link 
+                href={`/user/${result.user_profiles.username}`}
+                className="flex items-center gap-2 mt-3 hover:text-blue-600 transition-colors"
+              >
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    <User className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">
+                  {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
+                </span>
+              </Link>
+            ) : (
+              <div className="flex items-center gap-2 mt-3 text-gray-500">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+                  <AvatarFallback>
+                    <User className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm font-medium">
+                  {result.user_profiles?.full_name || '匿名用户'}
+                </span>
+              </div>
+            )}
 
             {/* 描述 */}
             {result.description && (
@@ -249,7 +267,7 @@ function GridResultCard({ result }: { result: SearchResult }) {
       {/* 缩略图 */}
       <Link 
         href={`/artwork/${result.id}`}
-        className="relative block aspect-[4/3] bg-gray-100 rounded-lg overflow-hidden mb-3"
+        className="relative block aspect-[4/3] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-3"
       >
         <Image
           src={result.image_url}
@@ -270,20 +288,34 @@ function GridResultCard({ result }: { result: SearchResult }) {
         </Link>
 
         {/* 作者 */}
-        <Link 
-          href={`/user/${result.user_id}`}
-          className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-        >
-          <Avatar className="h-6 w-6">
-            <AvatarImage src={result.user_avatar || undefined} />
-            <AvatarFallback>
-              <User className="h-3 w-3" />
-            </AvatarFallback>
-          </Avatar>
-          <span className="text-sm text-gray-600">
-            {result.username || '匿名用户'}
-          </span>
-        </Link>
+        {result.user_profiles?.username ? (
+          <Link 
+            href={`/user/${result.user_profiles.username}`}
+            className="flex items-center gap-2 hover:text-blue-600 transition-colors"
+          >
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+              <AvatarFallback>
+                <User className="h-3 w-3" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-gray-600">
+              {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
+            </span>
+          </Link>
+        ) : (
+          <div className="flex items-center gap-2 text-gray-500">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+              <AvatarFallback>
+                <User className="h-3 w-3" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-sm text-gray-600">
+              {result.user_profiles?.full_name || '匿名用户'}
+            </span>
+          </div>
+        )}
 
         {/* 元数据 */}
         <div className="flex items-center gap-2 text-xs text-gray-600">
