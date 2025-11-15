@@ -64,7 +64,9 @@ class FollowService {
       const cachedStatus = this.getFromCache(this.followStatusCache, cacheKey)
       
       if (cachedStatus === true) {
-        throw new Error('已经关注了该用户')
+        // 已经关注，直接返回，不抛出错误
+        console.log('User already following, skipping')
+        return
       }
 
       // 如果缓存中没有或已过期，检查数据库
@@ -83,7 +85,9 @@ class FollowService {
         if (existingFollows && existingFollows.length > 0) {
           // 更新缓存
           this.setCache(this.followStatusCache, cacheKey, true)
-          throw new Error('已经关注了该用户')
+          // 已经关注，直接返回，不抛出错误
+          console.log('User already following (from DB), skipping')
+          return
         }
       }
 
@@ -95,7 +99,16 @@ class FollowService {
           following_id: followingId
         })
 
-      if (insertError) throw insertError
+      if (insertError) {
+        // 检查是否是唯一约束冲突（已经关注）
+        if (insertError.code === '23505') {
+          // 更新缓存并返回，不抛出错误
+          this.setCache(this.followStatusCache, cacheKey, true)
+          console.log('User already following (unique constraint), skipping')
+          return
+        }
+        throw insertError
+      }
 
       // 创建关注通知
       try {

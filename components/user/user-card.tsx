@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -35,22 +35,32 @@ export function UserCard({ user, stats, isFollowing = false, onFollowChange }: U
 
   const isOwnProfile = currentUser?.id === user.id
 
+  // 同步外部的isFollowing prop到内部状态
+  useEffect(() => {
+    setIsFollowingState(isFollowing)
+  }, [isFollowing])
+
   const handleFollowToggle = async () => {
     if (!currentUser || isOwnProfile) return
 
     setIsLoading(true)
     try {
       if (isFollowingState) {
-        await followService.unfollowUser(currentUser.id, user.id)
+        // unfollowUser(followingId, followerId)
+        await followService.unfollowUser(user.id, currentUser.id)
         setIsFollowingState(false)
         onFollowChange?.(user.id, false)
       } else {
-        await followService.followUser(currentUser.id, user.id)
+        // followUser(followingId, followerId)
+        await followService.followUser(user.id, currentUser.id)
         setIsFollowingState(true)
         onFollowChange?.(user.id, true)
       }
     } catch (error) {
       console.error('Error toggling follow:', error)
+      // 如果出错，显示错误提示
+      const errorMessage = error instanceof Error ? error.message : '操作失败'
+      console.error('Follow toggle error:', errorMessage)
     } finally {
       setIsLoading(false)
     }

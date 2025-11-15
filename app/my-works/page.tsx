@@ -98,12 +98,15 @@ export default function MyWorksPage() {
     
     try {
       setActionLoading(imageId)
+      console.log('Starting deletion for image:', imageId)
       await imageService.deleteImage(imageId, user.id)
+      console.log('Deletion completed successfully')
       toast.success("作品已删除")
       await fetchUserImages() // 刷新列表
     } catch (error) {
       console.error('Error deleting image:', error)
-      toast.error("删除失败，请重试")
+      const errorMessage = error instanceof Error ? error.message : "删除失败，请重试"
+      toast.error(errorMessage)
     } finally {
       setActionLoading(null)
     }

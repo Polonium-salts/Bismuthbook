@@ -39,6 +39,7 @@ interface ArtworkDetailProps {
       avatar: string
       bio?: string
       followers?: number
+      userId?: string  // 添加艺术家的用户ID
     }
     likes: number
     views: number
@@ -46,19 +47,23 @@ interface ArtworkDetailProps {
     tags: string[]
     isLiked: boolean
     isBookmarked: boolean
+    isFollowing?: boolean  // 添加关注状态
     createdAt?: string
     dimensions?: string
     software?: string[]
     category?: string
   }
   currentUserUsername?: string
+  currentUserId?: string  // 添加当前用户ID
   onLike?: () => void
   onBookmark?: () => void
+  onFollow?: () => void  // 添加关注回调
 }
 
-export function ArtworkDetail({ artwork, currentUserUsername, onLike, onBookmark }: ArtworkDetailProps) {
+export function ArtworkDetail({ artwork, currentUserUsername, currentUserId, onLike, onBookmark, onFollow }: ArtworkDetailProps) {
   const [imageLoading, setImageLoading] = useState(true)
   const [imageError, setImageError] = useState(false)
+  const [isFollowLoading, setIsFollowLoading] = useState(false)
   
   // 检查当前用户是否是作品作者
   const isOwnArtwork = currentUserUsername && artwork.artist.username && currentUserUsername === artwork.artist.username
@@ -72,6 +77,17 @@ export function ArtworkDetail({ artwork, currentUserUsername, onLike, onBookmark
   const handleBookmark = () => {
     if (onBookmark) {
       onBookmark()
+    }
+  }
+
+  const handleFollow = async () => {
+    if (!onFollow) return
+    
+    setIsFollowLoading(true)
+    try {
+      await onFollow()
+    } finally {
+      setIsFollowLoading(false)
     }
   }
 
@@ -241,9 +257,14 @@ export function ArtworkDetail({ artwork, currentUserUsername, onLike, onBookmark
                   </p>
                 )}
               </div>
-              {!isOwnArtwork && (
-                <Button variant="outline" size="sm">
-                  关注
+              {!isOwnArtwork && currentUserId && (
+                <Button 
+                  variant={artwork.isFollowing ? "secondary" : "default"} 
+                  size="sm"
+                  onClick={handleFollow}
+                  disabled={isFollowLoading}
+                >
+                  {isFollowLoading ? "处理中..." : artwork.isFollowing ? "已关注" : "关注"}
                 </Button>
               )}
             </div>

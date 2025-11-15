@@ -12,10 +12,12 @@ const CommentSection = dynamic(() => import("@/components/comments/comment-secti
 })
 import { Separator } from "@/components/ui/separator"
 import { imageService } from "@/lib/services/image-service"
+import { followService } from "@/lib/services/follow-service"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { useInteractions, useComments } from "@/lib/hooks/use-interactions"
 import { getImageUrl } from "@/lib/supabase"
 import { ImageWithUserAndStats } from "@/lib/types/database"
+import { toast } from "sonner"
 
 interface ArtworkPageProps {
   params: Promise<{
@@ -28,6 +30,7 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
   const [artwork, setArtwork] = useState<ImageWithUserAndStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isFollowing, setIsFollowing] = useState(false)
   const { user, profile } = useAuth()
   
   // 使用交互功能 hooks
@@ -73,6 +76,12 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
         // 加载评论数据
         loadComments()
         
+        // 检查关注状态
+        if (user && artworkData.user_id && user.id !== artworkData.user_id) {
+          const followStatus = await followService.isFollowing(artworkData.user_id, user.id)
+          setIsFollowing(followStatus)
+        }
+        
       } catch (err) {
         console.error("加载作品数据失败:", err)
         setError("加载作品数据失败")
@@ -82,7 +91,7 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
     }
 
     loadArtworkData()
-  }, [resolvedParams.id, loadStats, loadComments])
+  }, [resolvedParams.id, user, loadStats, loadComments])
 
   if (loading) {
     return (
@@ -95,6 +104,35 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
         </div>
       </MainLayout>
     )
+  }
+
+  // 处理关注/取消关注
+  const handleFollowToggle = async () => {
+    if (!user || !artwork) {
+      toast.error("请先登录")
+      return
+    }
+
+    if (user.id === artwork.user_id) {
+      toast.error("不能关注自己")
+      return
+    }
+
+    try {
+      if (isFollowing) {
+        await followService.unfollowUser(artwork.user_id, user.id)
+        setIsFollowing(false)
+        toast.success("已取消关注")
+      } else {
+        await followService.followUser(artwork.user_id, user.id)
+        setIsFollowing(true)
+        toast.success("关注成功")
+      }
+    } catch (error) {
+      console.error("关注操作失败:", error)
+      const errorMessage = error instanceof Error ? error.message : "操作失败，请重试"
+      toast.error(errorMessage)
+    }
   }
 
   if (error || !artwork) {
@@ -132,17 +170,21 @@ export default function ArtworkPage({ params }: ArtworkPageProps) {
                 username: artwork.user_profiles.username,
                 avatar: artwork.user_profiles.avatar_url || '',
                 bio: artwork.user_profiles.bio || undefined,
-                followers: undefined
+                followers: undefined,
+                userId: artwork.user_id
               },
               likes: likeCount ?? 0,
               views: viewCount ?? 0,
               comments: commentCount ?? 0,
               isLiked,
-              isBookmarked: isFavorited
+              isBookmarked: isFavorited,
+              isFollowing
             }}
             currentUserUsername={profile?.username || undefined}
+            currentUserId={user?.id}
             onLike={toggleLike}
             onBookmark={toggleFavorite}
+            onFollow={handleFollowToggle}
           />
         </div>
         

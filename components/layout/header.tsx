@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { UserMenu } from "@/components/auth/user-menu"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown"
+import { MobileNotificationButton } from "@/components/notifications/mobile-notification-button"
 import { useAuth } from "@/lib/providers/auth-provider"
 import { cn } from "@/lib/utils"
 
@@ -119,10 +120,16 @@ export function Header({ onMenuClick }: HeaderProps) {
             <ThemeToggle />
           </div>
           
+          {/* 通知按钮 - 移动端跳转页面，桌面端下拉菜单 */}
           {user && (
-            <div className="hidden sm:block">
-              <NotificationDropdown />
-            </div>
+            <>
+              <div className="sm:hidden">
+                <MobileNotificationButton />
+              </div>
+              <div className="hidden sm:block">
+                <NotificationDropdown />
+              </div>
+            </>
           )}
           
           <UserMenu />

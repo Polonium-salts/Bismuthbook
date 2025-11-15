@@ -55,64 +55,64 @@ function NotificationCard({
 
   const content = (
     <Card 
-      className={`p-4 hover:shadow-md transition-all cursor-pointer ${
+      className={`p-3 sm:p-4 active:shadow-md sm:hover:shadow-md transition-all cursor-pointer ${
         !notification.read ? 'border-primary/50 bg-accent/20' : ''
       }`}
       onClick={handleClick}
     >
-      <div className="flex gap-4">
+      <div className="flex gap-3 sm:gap-4">
         <div className="flex-shrink-0">
           {notification.actor_avatar ? (
-            <Avatar className="h-12 w-12">
+            <Avatar className="h-10 w-10 sm:h-12 sm:w-12">
               <AvatarImage src={notification.actor_avatar} />
               <AvatarFallback>{notification.actor_name?.[0] || 'U'}</AvatarFallback>
             </Avatar>
           ) : (
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+            <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-muted flex items-center justify-center">
               {notificationIcons[notification.type]}
             </div>
           )}
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h4 className="font-semibold text-sm">{notification.title}</h4>
-            <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-start justify-between gap-2 mb-1.5 sm:mb-2">
+            <h4 className="font-semibold text-xs sm:text-sm">{notification.title}</h4>
+            <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
               {!notification.read && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 sm:h-8 sm:w-8"
                   onClick={(e) => {
                     e.stopPropagation()
                     onMarkAsRead(notification.id)
                   }}
                 >
-                  <Check className="h-4 w-4" />
+                  <Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               )}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8"
+                className="h-7 w-7 sm:h-8 sm:w-8"
                 onClick={(e) => {
                   e.stopPropagation()
                   onDelete(notification.id)
                 }}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
 
-          <p className="text-sm text-muted-foreground mb-2">
+          <p className="text-xs sm:text-sm text-muted-foreground mb-1.5 sm:mb-2">
             {notification.message}
           </p>
 
           <div className="flex items-center justify-between">
-            <p className="text-xs text-muted-foreground">{timeAgo}</p>
+            <p className="text-[10px] sm:text-xs text-muted-foreground">{timeAgo}</p>
             {!notification.read && (
-              <Badge variant="default" className="text-xs">
+              <Badge variant="default" className="text-[10px] sm:text-xs h-5">
                 新
               </Badge>
             )}
@@ -124,7 +124,7 @@ function NotificationCard({
             <img
               src={notification.image_url}
               alt=""
-              className="h-16 w-16 rounded object-cover"
+              className="h-12 w-12 sm:h-16 sm:w-16 rounded object-cover"
             />
           </div>
         )}
@@ -176,58 +176,60 @@ export default function NotificationsPage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto py-8 max-w-4xl">
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+      <div className="container mx-auto py-4 sm:py-6 md:py-8 max-w-4xl">
+        <div className="mb-4 sm:mb-6 md:mb-8">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
             <div>
-              <h1 className="text-3xl font-bold">通知</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold">通知</h1>
               {unreadCount > 0 && (
-                <p className="text-muted-foreground mt-1">
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                   {unreadCount} 条未读通知
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setFilter(filter === 'all' ? 'unread' : 'all')}
+                className="h-8 px-2 sm:px-3"
               >
-                <Filter className="h-4 w-4 mr-2" />
-                {filter === 'all' ? '仅未读' : '全部'}
+                <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">{filter === 'all' ? '仅未读' : '全部'}</span>
               </Button>
               {unreadCount > 0 && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={markAllAsRead}
+                  className="h-8 px-2 sm:px-3"
                 >
-                  <CheckCheck className="h-4 w-4 mr-2" />
-                  全部已读
+                  <CheckCheck className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">全部已读</span>
                 </Button>
               )}
             </div>
           </div>
         </div>
 
-        <Tabs defaultValue="all" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
-            <TabsTrigger value="all">全部</TabsTrigger>
-            <TabsTrigger value="like">点赞</TabsTrigger>
-            <TabsTrigger value="comment">评论</TabsTrigger>
-            <TabsTrigger value="follow">关注</TabsTrigger>
-            <TabsTrigger value="system">系统</TabsTrigger>
+        <Tabs defaultValue="all" className="space-y-4 sm:space-y-6">
+          <TabsList className="grid w-full grid-cols-5 h-9 sm:h-10">
+            <TabsTrigger value="all" className="text-xs sm:text-sm">全部</TabsTrigger>
+            <TabsTrigger value="like" className="text-xs sm:text-sm">点赞</TabsTrigger>
+            <TabsTrigger value="comment" className="text-xs sm:text-sm">评论</TabsTrigger>
+            <TabsTrigger value="follow" className="text-xs sm:text-sm">关注</TabsTrigger>
+            <TabsTrigger value="system" className="text-xs sm:text-sm">系统</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="all" className="space-y-4">
+          <TabsContent value="all" className="space-y-3 sm:space-y-4">
             {isLoading ? (
-              <div className="flex items-center justify-center p-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <div className="flex items-center justify-center p-8 sm:p-12">
+                <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary"></div>
               </div>
             ) : filteredNotifications.length === 0 ? (
-              <div className="text-center p-12">
-                <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
+              <div className="text-center p-8 sm:p-12">
+                <Bell className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                <p className="text-sm sm:text-base text-muted-foreground">
                   {filter === 'unread' ? '没有未读通知' : '暂无通知'}
                 </p>
               </div>
@@ -244,18 +246,18 @@ export default function NotificationsPage() {
           </TabsContent>
 
           {(['like', 'comment', 'follow', 'system'] as const).map((type) => (
-            <TabsContent key={type} value={type} className="space-y-4">
+            <TabsContent key={type} value={type} className="space-y-3 sm:space-y-4">
               {isLoading ? (
-                <div className="flex items-center justify-center p-12">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <div className="flex items-center justify-center p-8 sm:p-12">
+                  <div className="animate-spin rounded-full h-6 w-6 sm:h-8 sm:w-8 border-b-2 border-primary"></div>
                 </div>
               ) : (
                 (() => {
                   const typeNotifications = filteredNotifications.filter(n => n.type === type)
                   return typeNotifications.length === 0 ? (
-                    <div className="text-center p-12">
-                      <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">暂无此类通知</p>
+                    <div className="text-center p-8 sm:p-12">
+                      <Bell className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mx-auto mb-3 sm:mb-4" />
+                      <p className="text-sm sm:text-base text-muted-foreground">暂无此类通知</p>
                     </div>
                   ) : (
                     typeNotifications.map((notification) => (

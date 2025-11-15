@@ -829,9 +829,19 @@ class ImageService {
         .single()
 
       if (fetchError) throw fetchError
+      if (!image) throw new Error('Image not found')
 
-      // Delete from storage
-      await deleteImage(image.image_url)
+      console.log('Deleting image:', id, 'URL:', image.image_url)
+
+      // Delete from storage first (using the helper function that handles URL/path extraction)
+      try {
+        await deleteImage(image.image_url)
+        console.log('Successfully deleted from storage')
+      } catch (storageError) {
+        console.error('Error deleting from storage:', storageError)
+        // Continue with database deletion even if storage deletion fails
+        // This prevents orphaned database records
+      }
 
       // Delete from database
       const { error: deleteError } = await supabase
@@ -842,6 +852,7 @@ class ImageService {
 
       if (deleteError) throw deleteError
 
+      console.log('Successfully deleted from database')
       return true
     } catch (error) {
       console.error('Error deleting image:', error)

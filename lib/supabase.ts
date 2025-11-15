@@ -64,11 +64,61 @@ export const uploadImage = async (file: File, path?: string) => {
   return data.path
 }
 
-// Helper function to delete image
-export const deleteImage = async (path: string) => {
-  const { error } = await supabase.storage
-    .from(STORAGE_BUCKET)
-    .remove([path])
+// Helper function to extract storage path from URL or path
+export const extractStoragePath = (urlOrPath: string): string => {
+  if (!urlOrPath || urlOrPath.trim() === '') {
+    throw new Error('Invalid path or URL')
+  }
 
-  if (error) throw error
+  // If it's already just a path (no http/https), return it
+  if (!urlOrPath.startsWith('http://') && !urlOrPath.startsWith('https://')) {
+    return urlOrPath
+  }
+
+  try {
+    const url = new URL(urlOrPath)
+    // Extract path after /storage/v1/object/public/{bucket}/
+    const pathParts = url.pathname.split('/')
+    const publicIndex = pathParts.indexOf('public')
+    
+    if (publicIndex !== -1 && publicIndex < pathParts.length - 2) {
+      // Skip 'public' and bucket name, get the rest
+      return pathParts.slice(publicIndex + 2).join('/')
+    }
+    
+    // Fallback: try to get everything after the last known segment
+    const storageIndex = pathParts.indexOf('storage')
+    if (storageIndex !== -1) {
+      return pathParts.slice(storageIndex + 4).join('/') // Skip storage/v1/object/public
+    }
+    
+    throw new Error('Could not extract storage path from URL')
+  } catch (error) {
+    console.error('Error extracting storage path:', error)
+    throw new Error(`Invalid storage URL: ${urlOrPath}`)
+  }
+}
+
+// Helper function to delete image
+export const deleteImage = async (pathOrUrl: string) => {
+  try {
+    // Extract the actual storage path
+    const storagePath = extractStoragePath(pathOrUrl)
+    
+    console.log('Deleting from storage bucket:', STORAGE_BUCKET, 'path:', storagePath)
+    
+    const { error } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .remove([storagePath])
+
+    if (error) {
+      console.error('Storage deletion error:', error)
+      throw error
+    }
+    
+    console.log('Successfully deleted from storage:', storagePath)
+  } catch (error) {
+    console.error('Error in deleteImage:', error)
+    throw error
+  }
 }
