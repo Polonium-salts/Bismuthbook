@@ -20,32 +20,8 @@ const PixivGrid = memo(function PixivGrid({
   hasMore = false, 
   isLoading = false 
 }: PixivGridProps) {
-  const [columns, setColumns] = useState(4)
-  const [columnHeights, setColumnHeights] = useState<number[]>([])
-  const gridRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
-
-  // 响应式列数计算
-  const updateColumns = useCallback(() => {
-    const width = window.innerWidth
-    if (width < 640) setColumns(2)      // sm
-    else if (width < 768) setColumns(3) // md
-    else if (width < 1024) setColumns(4) // lg
-    else if (width < 1280) setColumns(5) // xl
-    else setColumns(6)                   // 2xl
-  }, [])
-
-  useEffect(() => {
-    updateColumns()
-    window.addEventListener('resize', updateColumns)
-    return () => window.removeEventListener('resize', updateColumns)
-  }, [updateColumns])
-
-  // 初始化列高度
-  useEffect(() => {
-    setColumnHeights(new Array(columns).fill(0))
-  }, [columns])
 
   // 无限滚动
   useEffect(() => {
@@ -73,30 +49,20 @@ const PixivGrid = memo(function PixivGrid({
 
   return (
     <div className={cn("w-full", className)}>
-      {/* Pixiv风格的瀑布流网格 */}
+      {/* 简单的 CSS Grid 布局 - 修复重叠问题 */}
       <div 
-        ref={gridRef}
-        className="relative"
-        style={{ 
-          height: Math.max(...columnHeights) + 'px',
-          minHeight: '400px'
-        }}
+        className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4 md:gap-6"
+        style={{ gridAutoRows: 'max-content' }}
       >
-        {artworks.map((artwork, index) => (
-          <PixivCard
-            key={artwork.id}
-            artwork={artwork}
-            onHeightCalculated={() => {
-              // 这里可以处理高度计算完成后的逻辑
-            }}
-            style={{
-              position: 'absolute',
-              width: `calc(${100 / columns}% - 12px)`,
-              left: `${(index % columns) * (100 / columns)}%`,
-              marginLeft: '6px',
-              marginRight: '6px',
-            }}
-          />
+        {artworks.map((artwork) => (
+          <div key={artwork.id} className="w-full h-full">
+            <PixivCard
+              artwork={artwork}
+              onHeightCalculated={() => {
+                // 这里可以处理高度计算完成后的逻辑
+              }}
+            />
+          </div>
         ))}
       </div>
 
@@ -104,7 +70,7 @@ const PixivGrid = memo(function PixivGrid({
       {hasMore && (
         <div 
           ref={loadMoreRef}
-          className="h-20 flex items-center justify-center"
+          className="h-20 flex items-center justify-center mt-6"
         >
           {isLoading && (
             <div className="flex items-center space-x-2 text-muted-foreground">

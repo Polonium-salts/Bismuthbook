@@ -300,31 +300,22 @@ export default function ProfilePage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-8">
-          {/* 用户资料骨架屏 */}
-          <div className="flex flex-col lg:flex-row gap-8 mb-8">
-            <Skeleton className="w-32 h-32 rounded-full" />
-            <div className="flex-1 space-y-4">
-              <Skeleton className="w-48 h-8" />
-              <Skeleton className="w-full h-4" />
-              <Skeleton className="w-3/4 h-4" />
-              <div className="flex gap-4">
-                <Skeleton className="w-24 h-10" />
-                <Skeleton className="w-24 h-10" />
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+          {/* 用户资料骨架屏 - 移动端优化 */}
+          <div className="space-y-4">
+            <div className="flex items-start gap-4">
+              <Skeleton className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex-shrink-0" />
+              <div className="flex-1 space-y-3">
+                <Skeleton className="w-32 h-6" />
+                <Skeleton className="w-24 h-4" />
+                <Skeleton className="w-full h-4" />
               </div>
             </div>
-          </div>
-          
-          {/* 统计数据骨架屏 */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <Card key={i}>
-                <CardContent className="p-4 text-center">
-                  <Skeleton className="w-8 h-8 mx-auto mb-2" />
-                  <Skeleton className="w-16 h-4 mx-auto" />
-                </CardContent>
-              </Card>
-            ))}
+            
+            <div className="flex gap-2">
+              <Skeleton className="flex-1 h-9" />
+              <Skeleton className="flex-1 h-9" />
+            </div>
           </div>
         </div>
       </MainLayout>
@@ -350,7 +341,7 @@ export default function ProfilePage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         {/* 用户资料头部 */}
         <UserProfileHeader
           userProfile={userProfile}
@@ -362,18 +353,18 @@ export default function ProfilePage() {
         />
 
         {/* 作品展示区域 */}
-        <Tabs defaultValue="artworks" className="mt-8">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="artworks">我的作品</TabsTrigger>
-            <TabsTrigger value="liked" onClick={() => fetchLikedArtworks()}>
-              喜欢的作品
+        <Tabs defaultValue="artworks" className="mt-6 sm:mt-8">
+          <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10">
+            <TabsTrigger value="artworks" className="text-xs sm:text-sm">我的作品</TabsTrigger>
+            <TabsTrigger value="liked" onClick={() => fetchLikedArtworks()} className="text-xs sm:text-sm">
+              喜欢
             </TabsTrigger>
-            <TabsTrigger value="favorites" onClick={() => fetchFavoriteArtworks()}>
-              收藏夹
+            <TabsTrigger value="favorites" onClick={() => fetchFavoriteArtworks()} className="text-xs sm:text-sm">
+              收藏
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="artworks" className="mt-6">
+          <TabsContent value="artworks" className="mt-4 sm:mt-6">
             <UserArtworkGrid
               artworks={userArtworks}
               loading={artworksLoading}
@@ -381,7 +372,7 @@ export default function ProfilePage() {
             />
           </TabsContent>
 
-          <TabsContent value="liked" className="mt-6">
+          <TabsContent value="liked" className="mt-4 sm:mt-6">
             <UserArtworkGrid
               artworks={likedArtworks}
               loading={likedLoading}
@@ -389,7 +380,7 @@ export default function ProfilePage() {
             />
           </TabsContent>
 
-          <TabsContent value="favorites" className="mt-6">
+          <TabsContent value="favorites" className="mt-4 sm:mt-6">
             <UserArtworkGrid
               artworks={favoriteArtworks}
               loading={favoritesLoading}

@@ -125,15 +125,15 @@ const ImageCard = memo(function ImageCard({ image, onImageClick, useAspectRatio 
   return (
     <>
       <Card 
-        className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg"
+        className="group cursor-pointer overflow-hidden transition-all duration-300 hover:shadow-lg w-full h-full flex flex-col"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleImageClick}
       >
-        <CardContent className="p-0">
+        <CardContent className="p-0 flex flex-col h-full">
           {/* 图片容器 */}
           <div 
-            className={`relative overflow-hidden ${
+            className={`relative overflow-hidden w-full ${
               useAspectRatio ? '' : 'aspect-[3/4]'
             }`}
             style={useAspectRatio ? { aspectRatio: aspectRatio.toString() } : undefined}

@@ -90,17 +90,31 @@ function SearchPageContent() {
 
   return (
     <MainLayout>
-      <div className="space-y-4">
-        {/* 返回按钮 */}
-        <div className="flex items-center gap-4">
+      <div className="space-y-3 sm:space-y-4">
+        {/* 返回按钮 - 移动端优化 */}
+        <div className="flex items-center gap-3 -mx-2 px-2">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => router.back()}
-            className="flex-shrink-0"
+            className="flex-shrink-0 h-9 w-9"
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
+          
+          {/* 移动端搜索结果标题 */}
+          {searchQuery && (
+            <div className="flex-1 min-w-0">
+              <h1 className="text-base sm:text-xl font-medium truncate">
+                <span className="text-gray-600">&quot;{searchQuery}&quot;</span>
+              </h1>
+              {!isLoading && (
+                <p className="text-xs sm:text-sm text-gray-500">
+                  约 {searchResults.length} 个结果
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* YouTube 风格的筛选器 */}
@@ -118,41 +132,16 @@ function SearchPageContent() {
           onClearFilters={handleClearFilters}
         />
 
-        {/* 搜索结果统计 */}
-        {searchQuery && (
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-medium">
-                搜索结果：<span className="text-gray-600">&quot;{searchQuery}&quot;</span>
-              </h1>
-              {!isLoading && (
-                <p className="text-sm text-gray-500 mt-1">
-                  约 {searchResults.length} 个结果
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={refresh}
-              disabled={isLoading}
-            >
-              刷新
-            </Button>
-          </div>
-        )}
-
-        {/* 加载状态 */}
+        {/* 加载状态 - 移动端优化 */}
         {isLoading && searchResults.length === 0 && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex gap-4">
-                <Skeleton className="w-60 h-36 rounded-lg flex-shrink-0" />
-                <div className="flex-1 space-y-3">
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
+              <div key={i} className="flex gap-3">
+                <Skeleton className="w-[140px] h-[105px] sm:w-60 sm:h-36 rounded-lg flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 sm:h-6 w-3/4" />
+                  <Skeleton className="h-3 sm:h-4 w-1/2" />
+                  <Skeleton className="h-3 sm:h-4 w-2/3" />
                 </div>
               </div>
             ))}

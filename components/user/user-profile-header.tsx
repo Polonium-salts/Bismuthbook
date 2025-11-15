@@ -65,109 +65,85 @@ export function UserProfileHeader({
   }
 
   return (
-    <div className="space-y-6">
-      {/* 用户基本信息 */}
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
-        {/* 头像 */}
-        <div className="flex-shrink-0 mx-auto lg:mx-0">
-          <Avatar className="w-24 h-24 sm:w-32 sm:h-32 border-4 border-background shadow-lg">
-            <AvatarImage 
-              src={userProfile.avatar_url || ""} 
-              alt={userProfile.username}
-              className="object-cover"
-            />
-            <AvatarFallback className="text-xl sm:text-2xl">
-              <User className="w-12 h-12 sm:w-16 sm:h-16" />
-            </AvatarFallback>
-          </Avatar>
-        </div>
+    <div className="space-y-4 sm:space-y-6">
+      {/* 用户基本信息 - 移动端优化 */}
+      <div className="flex flex-col gap-4">
+        {/* 头像和基本信息 - 移动端横向布局 */}
+        <div className="flex items-start gap-4">
+          {/* 头像 */}
+          <div className="flex-shrink-0">
+            <Avatar className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 border-2 sm:border-4 border-background shadow-lg">
+              <AvatarImage 
+                src={userProfile.avatar_url || ""} 
+                alt={userProfile.username}
+                className="object-cover"
+              />
+              <AvatarFallback className="text-lg sm:text-xl">
+                <User className="w-10 h-10 sm:w-12 sm:h-12" />
+              </AvatarFallback>
+            </Avatar>
+          </div>
 
-        {/* 用户信息 */}
-        <div className="flex-1 min-w-0 text-center lg:text-left">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-            <div className="space-y-3">
+          {/* 用户名和统计 - 移动端紧凑布局 */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold truncate">
+              {userProfile.full_name || userProfile.username}
+            </h1>
+            <p className="text-muted-foreground text-xs sm:text-sm mb-3">@{userProfile.username}</p>
+            
+            {/* 移动端统计数据 - 紧凑显示 */}
+            <div className="flex gap-4 text-sm">
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">
-                  {userProfile.full_name || userProfile.username}
-                </h1>
-                <p className="text-muted-foreground text-sm sm:text-base">@{userProfile.username}</p>
+                <span className="font-semibold">{userStats.artworks}</span>
+                <span className="text-muted-foreground ml-1">作品</span>
               </div>
-
-              {/* 个人简介 */}
-              {userProfile.bio && (
-                <p className="text-sm md:text-base leading-relaxed max-w-2xl">
-                  {userProfile.bio}
-                </p>
-              )}
-
-              {/* 附加信息 */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-                {userProfile.website && (
-                  <a 
-                    href={userProfile.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 hover:text-primary transition-colors"
-                  >
-                    <LinkIcon className="w-4 h-4" />
-                    <span className="truncate max-w-48">
-                      {userProfile.website.replace(/^https?:\/\//, '')}
-                    </span>
-                  </a>
-                )}
-                
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  <span>
-                    加入于 {userProfile.created_at ? 
-                      new Date(userProfile.created_at).toLocaleDateString('zh-CN', {
-                        year: 'numeric',
-                        month: 'long'
-                      }) : '未知'
-                    }
-                  </span>
-                </div>
+              <div>
+                <span className="font-semibold">{userStats.followers}</span>
+                <span className="text-muted-foreground ml-1">粉丝</span>
+              </div>
+              <div>
+                <span className="font-semibold">{userStats.following}</span>
+                <span className="text-muted-foreground ml-1">关注</span>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* 操作按钮 */}
-            <div className="flex gap-2 flex-shrink-0 justify-center lg:justify-start">
-              {isOwnProfile ? (
-                <>
-                  <Link href="/my-works">
-                    <Button variant="outline" size="sm" className="min-w-[100px]">
-                      <Settings className="w-4 h-4 mr-2" />
-                      管理作品
-                    </Button>
-                  </Link>
-                  <Link href="/settings">
-                    <Button variant="outline" size="sm" className="min-w-[80px]">
-                      <Cog className="w-4 h-4 mr-2" />
-                      设置
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Button
-                    variant={isFollowing ? "outline" : "default"}
-                    size="sm"
-                    onClick={onFollowToggle}
-                    disabled={followLoading}
-                    className="min-w-[80px]"
-                  >
-                    {followLoading ? (
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    ) : isFollowing ? (
-                      <UserMinus className="w-4 h-4 mr-2" />
-                    ) : (
-                      <UserPlus className="w-4 h-4 mr-2" />
-                    )}
-                    {isFollowing ? '已关注' : '关注'}
-                  </Button>
-                </>
-              )}
-              
+        {/* 操作按钮 - 移动端全宽 */}
+        <div className="flex gap-2">
+          {isOwnProfile ? (
+            <>
+              <Link href="/settings" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Cog className="w-4 h-4 mr-2" />
+                  编辑资料
+                </Button>
+              </Link>
+              <Link href="/my-works" className="flex-1">
+                <Button variant="outline" size="sm" className="w-full">
+                  <Settings className="w-4 h-4 mr-2" />
+                  管理作品
+                </Button>
+              </Link>
+            </>
+          ) : (
+            <>
+              <Button
+                variant={isFollowing ? "outline" : "default"}
+                size="sm"
+                onClick={onFollowToggle}
+                disabled={followLoading}
+                className="flex-1"
+              >
+                {followLoading ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : isFollowing ? (
+                  <UserMinus className="w-4 h-4 mr-2" />
+                ) : (
+                  <UserPlus className="w-4 h-4 mr-2" />
+                )}
+                {isFollowing ? '已关注' : '关注'}
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -181,46 +157,82 @@ export function UserProfileHeader({
                   <Share2 className="w-4 h-4" />
                 )}
               </Button>
-            </div>
+            </>
+          )}
+        </div>
+
+        {/* 个人简介 */}
+        {userProfile.bio && (
+          <p className="text-sm leading-relaxed">
+            {userProfile.bio}
+          </p>
+        )}
+
+        {/* 附加信息 */}
+        <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm text-muted-foreground">
+          {userProfile.website && (
+            <a 
+              href={userProfile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 hover:text-primary transition-colors"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              <span className="truncate max-w-[200px]">
+                {userProfile.website.replace(/^https?:\/\//, '')}
+              </span>
+            </a>
+          )}
+          
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>
+              {userProfile.created_at ? 
+                new Date(userProfile.created_at).toLocaleDateString('zh-CN', {
+                  year: 'numeric',
+                  month: 'long'
+                }) : '未知'
+              }
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 统计信息 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <Card className="hover:shadow-md transition-all duration-200 hover:scale-105">
-          <CardContent className="p-3 sm:p-4 text-center">
-            <div className="text-lg sm:text-2xl font-bold text-primary">
+      {/* 详细统计卡片 - 桌面端显示 */}
+      <div className="hidden sm:grid grid-cols-4 gap-3">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">
               {userStats.artworks}
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">作品</div>
+            <div className="text-sm text-muted-foreground">作品</div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md transition-all duration-200 hover:scale-105">
-          <CardContent className="p-3 sm:p-4 text-center">
-            <div className="text-lg sm:text-2xl font-bold text-primary">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">
               {userStats.followers}
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">粉丝</div>
+            <div className="text-sm text-muted-foreground">粉丝</div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md transition-all duration-200 hover:scale-105">
-          <CardContent className="p-3 sm:p-4 text-center">
-            <div className="text-lg sm:text-2xl font-bold text-primary">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">
               {userStats.following}
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">关注</div>
+            <div className="text-sm text-muted-foreground">关注</div>
           </CardContent>
         </Card>
         
-        <Card className="hover:shadow-md transition-all duration-200 hover:scale-105">
-          <CardContent className="p-3 sm:p-4 text-center">
-            <div className="text-lg sm:text-2xl font-bold text-primary">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardContent className="p-4 text-center">
+            <div className="text-2xl font-bold text-primary">
               {userStats.likes}
             </div>
-            <div className="text-xs sm:text-sm text-muted-foreground">获赞</div>
+            <div className="text-sm text-muted-foreground">获赞</div>
           </CardContent>
         </Card>
       </div>

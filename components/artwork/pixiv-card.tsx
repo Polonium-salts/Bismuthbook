@@ -102,10 +102,9 @@ const PixivCard = memo(function PixivCard({
       <div 
         ref={cardRef}
         className={cn(
-          "group cursor-pointer bg-background rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 mb-4",
+          "group cursor-pointer bg-background rounded-lg overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 w-full h-full flex flex-col",
           className
         )}
-        style={style}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onClick={handleImageClick}

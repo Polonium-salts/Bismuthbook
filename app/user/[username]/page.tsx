@@ -197,38 +197,27 @@ export default function UserProfilePage() {
   if (loading) {
     return (
       <MainLayout>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
           <div className="max-w-6xl mx-auto">
-            {/* 用户信息骨架屏 */}
-            <div className="mb-8">
-              <div className="flex flex-col md:flex-row gap-6 items-start">
-                <Skeleton className="w-32 h-32 rounded-full" />
-                <div className="flex-1 space-y-4">
-                  <Skeleton className="h-8 w-48" />
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-16 w-full max-w-md" />
-                  <div className="flex gap-4">
-                    <Skeleton className="h-10 w-24" />
-                    <Skeleton className="h-10 w-24" />
-                  </div>
+            {/* 用户信息骨架屏 - 移动端优化 */}
+            <div className="space-y-4 mb-6 sm:mb-8">
+              <div className="flex items-start gap-4">
+                <Skeleton className="w-20 h-20 sm:w-24 sm:h-24 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <Skeleton className="h-6 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-full max-w-xs" />
                 </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Skeleton className="flex-1 h-9" />
+                <Skeleton className="w-9 h-9" />
               </div>
             </div>
 
-            {/* 统计信息骨架屏 */}
-            <div className="grid grid-cols-4 gap-4 mb-8">
-              {[...Array(4)].map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4 text-center">
-                    <Skeleton className="h-8 w-16 mx-auto mb-2" />
-                    <Skeleton className="h-4 w-12 mx-auto" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            {/* 作品网格骨架屏 */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {/* 作品网格骨架屏 - 移动端2列 */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
               {[...Array(8)].map((_, i) => (
                 <Skeleton key={i} className="aspect-square rounded-lg" />
               ))}
@@ -262,7 +251,7 @@ export default function UserProfilePage() {
 
   return (
     <MainLayout>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <div className="max-w-6xl mx-auto">
           {/* 用户信息头部 */}
           <UserProfileHeader
@@ -275,21 +264,21 @@ export default function UserProfilePage() {
           />
 
           {/* 作品展示区域 */}
-          <div className="mt-8">
+          <div className="mt-6 sm:mt-8">
             <Tabs defaultValue="artworks" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="artworks">
+              <TabsList className="grid w-full grid-cols-3 h-9 sm:h-10">
+                <TabsTrigger value="artworks" className="text-xs sm:text-sm">
                   作品 ({userStats.artworks})
                 </TabsTrigger>
-                <TabsTrigger value="liked">
-                  喜欢的作品
+                <TabsTrigger value="liked" className="text-xs sm:text-sm">
+                  喜欢
                 </TabsTrigger>
-                <TabsTrigger value="collections">
-                  收藏夹
+                <TabsTrigger value="collections" className="text-xs sm:text-sm">
+                  收藏
                 </TabsTrigger>
               </TabsList>
               
-              <TabsContent value="artworks" className="mt-6">
+              <TabsContent value="artworks" className="mt-4 sm:mt-6">
                 <UserArtworkGrid
                   artworks={userArtworks}
                   loading={artworksLoading}
@@ -301,17 +290,17 @@ export default function UserProfilePage() {
                 />
               </TabsContent>
               
-              <TabsContent value="liked" className="mt-6">
+              <TabsContent value="liked" className="mt-4 sm:mt-6">
                 <div className="text-center py-12">
-                  <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">喜欢的作品功能即将上线</p>
+                  <User className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm sm:text-base text-muted-foreground">喜欢的作品功能即将上线</p>
                 </div>
               </TabsContent>
               
-              <TabsContent value="collections" className="mt-6">
+              <TabsContent value="collections" className="mt-4 sm:mt-6">
                 <div className="text-center py-12">
-                  <User className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-                  <p className="text-muted-foreground">收藏夹功能即将上线</p>
+                  <User className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-4 text-muted-foreground" />
+                  <p className="text-sm sm:text-base text-muted-foreground">收藏夹功能即将上线</p>
                 </div>
               </TabsContent>
             </Tabs>

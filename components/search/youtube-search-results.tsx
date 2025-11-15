@@ -58,20 +58,21 @@ export function YouTubeSearchResults({
 
   if (viewMode === 'grid') {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
           {results.map((result) => (
             <GridResultCard key={result.id} result={result} />
           ))}
         </div>
         
         {hasMore && onLoadMore && (
-          <div className="flex justify-center pt-8">
+          <div className="flex justify-center pt-4 sm:pt-8">
             <Button
               onClick={onLoadMore}
               disabled={isLoading}
               variant="outline"
               size="lg"
+              className="w-full sm:w-auto rounded-full"
             >
               {isLoading ? "加载中..." : "加载更多"}
             </Button>
@@ -82,19 +83,19 @@ export function YouTubeSearchResults({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {results.map((result) => (
         <ListResultCard key={result.id} result={result} />
       ))}
       
       {hasMore && onLoadMore && (
-        <div className="flex justify-center pt-8">
+        <div className="flex justify-center pt-4 sm:pt-8">
           <Button
             onClick={onLoadMore}
             disabled={isLoading}
             variant="outline"
             size="lg"
-            className="rounded-full"
+            className="w-full sm:w-auto rounded-full"
           >
             {isLoading ? "加载中..." : "加载更多"}
           </Button>
@@ -123,215 +124,143 @@ function ListResultCard({ result }: { result: SearchResult }) {
   const timeAgo = result.created_at ? getTimeAgo(result.created_at) : '未知时间'
 
   return (
-    <div className="flex gap-4 group hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded-lg transition-colors">
-      {/* 缩略图 - YouTube 风格 */}
-      <Link 
-        href={`/artwork/${result.id}`}
-        className="relative flex-shrink-0 w-60 h-36 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden"
-      >
+    <Link 
+      href={`/artwork/${result.id}`}
+      className="flex gap-3 active:bg-gray-50 dark:active:bg-gray-800 p-2 -mx-2 rounded-lg transition-colors"
+    >
+      {/* 缩略图 - 移动端优化 */}
+      <div className="relative flex-shrink-0 w-[140px] h-[105px] sm:w-60 sm:h-36 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
         <Image
           src={result.image_url}
           alt={result.title}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="240px"
+          className="object-cover"
+          sizes="(max-width: 640px) 140px, 240px"
         />
-        {/* 时长标签（如果需要） */}
-        <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs px-2 py-0.5 rounded">
-          图片
-        </div>
-      </Link>
+      </div>
 
       {/* 内容区域 */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            {/* 标题 */}
-            <Link href={`/artwork/${result.id}`}>
-              <h3 className="text-lg font-medium line-clamp-2 hover:text-blue-600 transition-colors">
-                {result.title}
-              </h3>
-            </Link>
+      <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+        {/* 上半部分：标题和作者 */}
+        <div className="space-y-2">
+          {/* 标题 */}
+          <h3 className="text-sm sm:text-base font-medium line-clamp-2 leading-snug">
+            {result.title}
+          </h3>
 
-            {/* 元数据 */}
-            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Eye className="h-3.5 w-3.5" />
-                {(result.view_count || 0).toLocaleString()} 次观看
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                {timeAgo}
-              </span>
-            </div>
-
-            {/* 作者信息 */}
-            {result.user_profiles?.username ? (
-              <Link 
-                href={`/user/${result.user_profiles.username}`}
-                className="flex items-center gap-2 mt-3 hover:text-blue-600 transition-colors"
-              >
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
-                  <AvatarFallback>
-                    <User className="h-3 w-3" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">
-                  {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
-                </span>
-              </Link>
-            ) : (
-              <div className="flex items-center gap-2 mt-3 text-gray-500">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
-                  <AvatarFallback>
-                    <User className="h-3 w-3" />
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">
-                  {result.user_profiles?.full_name || '匿名用户'}
-                </span>
-              </div>
-            )}
-
-            {/* 描述 */}
-            {result.description && (
-              <p className="text-sm text-gray-600 line-clamp-2 mt-2">
-                {result.description}
-              </p>
-            )}
-
-            {/* 标签和分类 */}
-            <div className="flex items-center gap-2 mt-3 flex-wrap">
-              {result.category && (
-                <Badge variant="secondary" className="text-xs">
-                  {result.category}
-                </Badge>
-              )}
-              {result.tags?.slice(0, 3).map((tag) => (
-                <Badge 
-                  key={tag} 
-                  variant="outline" 
-                  className="text-xs hover:bg-blue-50 hover:text-blue-600 cursor-pointer"
-                >
-                  #{tag}
-                </Badge>
-              ))}
-            </div>
-
-            {/* 互动数据 */}
-            <div className="flex items-center gap-4 mt-3 text-sm text-gray-600">
-              <span className="flex items-center gap-1">
-                <Heart className="h-4 w-4" />
-                {(result.like_count || 0).toLocaleString()}
-              </span>
-              {result.comment_count !== undefined && result.comment_count !== null && (
-                <span className="flex items-center gap-1">
-                  <MessageCircle className="h-4 w-4" />
-                  {result.comment_count.toLocaleString()}
-                </span>
-              )}
-            </div>
+          {/* 作者信息 - 移动端简化 */}
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-gray-600">
+            <Avatar className="h-5 w-5 sm:h-6 sm:w-6">
+              <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+              <AvatarFallback>
+                <User className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+              </AvatarFallback>
+            </Avatar>
+            <span className="truncate">
+              {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
+            </span>
           </div>
-
-          {/* 更多选项 */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem>分享</DropdownMenuItem>
-              <DropdownMenuItem>保存到收藏</DropdownMenuItem>
-              <DropdownMenuItem>举报</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
+
+        {/* 下半部分：统计数据 */}
+        <div className="flex items-center gap-3 text-xs text-gray-600">
+          <span className="flex items-center gap-1">
+            <Eye className="h-3 w-3" />
+            {formatNumber(result.view_count || 0)}
+          </span>
+          <span className="flex items-center gap-1">
+            <Heart className="h-3 w-3" />
+            {formatNumber(result.like_count || 0)}
+          </span>
+          {result.comment_count !== undefined && result.comment_count !== null && (
+            <span className="flex items-center gap-1">
+              <MessageCircle className="h-3 w-3" />
+              {formatNumber(result.comment_count)}
+            </span>
+          )}
+          <span className="hidden sm:inline">•</span>
+          <span className="hidden sm:inline">{timeAgo}</span>
+        </div>
+
+        {/* 标签 - 仅在较大屏幕显示 */}
+        {result.tags && result.tags.length > 0 && (
+          <div className="hidden sm:flex items-center gap-1.5 flex-wrap mt-2">
+            {result.tags.slice(0, 2).map((tag) => (
+              <Badge 
+                key={tag} 
+                variant="outline" 
+                className="text-xs px-1.5 py-0"
+              >
+                #{tag}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
-    </div>
+    </Link>
   )
 }
 
-function GridResultCard({ result }: { result: SearchResult }) {
-  const timeAgo = result.created_at ? getTimeAgo(result.created_at) : '未知时间'
+// 格式化数字显示
+function formatNumber(num: number): string {
+  if (num >= 10000) {
+    return `${(num / 10000).toFixed(1)}万`
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}k`
+  }
+  return num.toString()
+}
 
+function GridResultCard({ result }: { result: SearchResult }) {
   return (
-    <div className="group">
+    <Link 
+      href={`/artwork/${result.id}`}
+      className="block active:opacity-80 transition-opacity"
+    >
       {/* 缩略图 */}
-      <Link 
-        href={`/artwork/${result.id}`}
-        className="relative block aspect-[4/3] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-3"
-      >
+      <div className="relative aspect-[3/4] bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden mb-2">
         <Image
           src={result.image_url}
           alt={result.title}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-300"
-          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+          className="object-cover"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
         />
-      </Link>
+      </div>
 
       {/* 内容 */}
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {/* 标题 */}
-        <Link href={`/artwork/${result.id}`}>
-          <h3 className="font-medium line-clamp-2 hover:text-blue-600 transition-colors">
-            {result.title}
-          </h3>
-        </Link>
+        <h3 className="text-sm font-medium line-clamp-2 leading-snug">
+          {result.title}
+        </h3>
 
         {/* 作者 */}
-        {result.user_profiles?.username ? (
-          <Link 
-            href={`/user/${result.user_profiles.username}`}
-            className="flex items-center gap-2 hover:text-blue-600 transition-colors"
-          >
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
-              <AvatarFallback>
-                <User className="h-3 w-3" />
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-gray-600">
-              {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
-            </span>
-          </Link>
-        ) : (
-          <div className="flex items-center gap-2 text-gray-500">
-            <Avatar className="h-6 w-6">
-              <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
-              <AvatarFallback>
-                <User className="h-3 w-3" />
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-sm text-gray-600">
-              {result.user_profiles?.full_name || '匿名用户'}
-            </span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+          <Avatar className="h-4 w-4">
+            <AvatarImage src={result.user_profiles?.avatar_url || undefined} />
+            <AvatarFallback>
+              <User className="h-2 w-2" />
+            </AvatarFallback>
+          </Avatar>
+          <span className="truncate">
+            {result.user_profiles?.username || result.user_profiles?.full_name || '匿名用户'}
+          </span>
+        </div>
 
-        {/* 元数据 */}
+        {/* 统计数据 */}
         <div className="flex items-center gap-2 text-xs text-gray-600">
-          <span className="flex items-center gap-1">
-            <Eye className="h-3 w-3" />
-            {(result.view_count || 0).toLocaleString()}
-          </span>
-          <span>•</span>
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-0.5">
             <Heart className="h-3 w-3" />
-            {(result.like_count || 0).toLocaleString()}
+            {formatNumber(result.like_count || 0)}
           </span>
-          <span>•</span>
-          <span>{timeAgo}</span>
+          <span className="flex items-center gap-0.5">
+            <Eye className="h-3 w-3" />
+            {formatNumber(result.view_count || 0)}
+          </span>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
